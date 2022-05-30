@@ -42,7 +42,7 @@ To build and run locally:
     
     ```
     git clone https://github.com/metno/sea-ice-index-viz && \
-    cd WUI && \
+    cd sea-ice-index-viz && \
     docker-compose build
     ```
 

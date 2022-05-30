@@ -1,5 +1,7 @@
 # sea-ice-index-viz
 Visualization tools for the Sea Ice Indexes
+
+
 **Sea Ice Extent:  Time series of Sea Ice Extent - NetCDF resource available as OpenDAP URL**
 
 ### Demo

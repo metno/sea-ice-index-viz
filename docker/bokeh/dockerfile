@@ -1,0 +1,28 @@
+FROM python:3.9-slim-buster
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y apt-utils  build-essential git
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install dependencies:
+COPY requirements.txt .
+RUN pip install -U pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+WORKDIR /
+
+ENV PYTHONPATH=/app
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 7000
+
+ENV ORIGIN="0.0.0.0:7000" PORT="7000" PREFIX="" LOG_LEVEL="debug"
+
+COPY ./app /app
+ENTRYPOINT ["./entrypoint.sh"]

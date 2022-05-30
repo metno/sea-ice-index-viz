@@ -1,0 +1,6 @@
+netcdf4
+xarray
+pandas
+bokeh
+panel
+holoviews

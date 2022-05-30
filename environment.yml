@@ -1,0 +1,10 @@
+dependencies:
+  - bokeh
+  - pandas
+  - pip
+  - netcdf4
+  - xarray
+  - panel
+  - holoviews
+  - pip:
+    - jupyter-server-proxy

@@ -10,8 +10,9 @@ from holoviews import opts
 import panel as pn
 
 pn.extension()
-hv.extension("bokeh")
-
+hv.extension("bokeh", "matplotlib")
+pn.extension(loading_spinner='dots', loading_color='#00aa41')
+pn.param.ParamMethod.loading_indicator = True
 
 def split_list(a, n):
     k, m = divmod(len(a), n)
@@ -97,13 +98,21 @@ def get_mplot(df, cols=None):
     )
     return mplot
 
-def get_data():
-    nc_url = "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc"
+def get_data(url):
+    nc_url = url
     ds = xr.open_dataset(nc_url)
+    ds = ds.sel(nv=0)
     df = ds.to_dataframe()
-    new_data = {
-        str(i): df["sie"].loc[df.index.groupby(df.index.get_level_values(0).year)[i]].values  
-        for i in df.index.get_level_values(0).groupby(df.index.get_level_values(0).year)
+    try:
+        new_data = {
+            str(i): df["sie"].loc[df.index.groupby(df.index.year)[i]].values
+            for i in df.index.groupby(df.index.year)
+        }
+    except AttributeError:
+        print('multi index data using level 0')
+        new_data = {
+        str(i): df["sie"].loc[df.index.groupby(df.index.get_level_values(1).year)[i]].values  
+        for i in df.index.get_level_values(1).groupby(df.index.get_level_values(1).year)
     }
     all_years = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in new_data.items()]))
     all_years.dataset_metadata = ""
@@ -114,21 +123,40 @@ def get_data():
     return all_years
 
 
+# urls = ['https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc', 
+#         'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc',
+#         'https://hyrax.epinux.com/opendap/local_data/osisaf_nh_iceextent_daily.nc']
 
 
-df = get_data()
+urls_dict = {'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc', 
+        'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc'}
+df = get_data(urls[1])
 
 years = pn.widgets.MultiChoice(
-    name="Years", options=list(df.columns), margin=(0, 20, 0, 0)
+    name="Years:", options=list(df.columns), margin=(0, 20, 0, 0)
 )
 
 
-@pn.depends(years)
-def get_plot(years):
-    df = get_data()
+dataset = pn.widgets.MultiChoice(
+    name="Hemisphere", options=list(urls_dict.keys()), margin=(0, 20, 0, 0)
+)
+
+radio_group = pn.widgets.RadioButtonGroup(
+    name='Hemisphere', options=['North', 'South'], button_type='success')
+
+
+
+@pn.depends(years, radio_group)
+def get_plot(years, radio_group):
+    if radio_group:
+        url = urls_dict[radio_group]
+    else:
+        url = urls_dict[list(urls_dict.keys())[0]]
+    df = get_data(url=url)
     if years:
         df = transfer_metadata(df, years)
     mplot = get_mplot(df, years)
     return mplot
 
-pn.Column("Sea Ice Extent", get_plot, pn.Row(years), width_policy="max").servable()
+pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)
+

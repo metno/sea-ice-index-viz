@@ -130,7 +130,8 @@ def get_data(url):
 
 urls_dict = {'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc', 
         'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc'}
-df = get_data(urls[1])
+
+df = get_data(urls_dict['North'])
 
 years = pn.widgets.MultiChoice(
     name="Years:", options=list(df.columns), margin=(0, 20, 0, 0)

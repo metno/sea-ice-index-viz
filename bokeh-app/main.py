@@ -103,15 +103,27 @@ def get_data(url):
     ds = xr.open_dataset(nc_url)
     ds = ds.sel(nv=0)
     df = ds.to_dataframe()
+
+    # Check whether to fetch Sea Ice Extent or Sea Ice Area.
+    try:
+        df["sie"]
+        metric = "sie"
+    except:
+        try:
+            df["sia"]
+            metric = "sia"
+        except:
+            print("Could not find a SIE or SIA column in the data!")
+
     try:
         new_data = {
-            str(i): df["sie"].loc[df.index.groupby(df.index.year)[i]].values
+            str(i): df[metric].loc[df.index.groupby(df.index.year)[i]].values
             for i in df.index.groupby(df.index.year)
         }
     except AttributeError:
         print('multi index data using level 0')
         new_data = {
-        str(i): df["sie"].loc[df.index.groupby(df.index.get_level_values(1).year)[i]].values  
+        str(i): df[metric].loc[df.index.groupby(df.index.get_level_values(1).year)[i]].values
         for i in df.index.get_level_values(1).groupby(df.index.get_level_values(1).year)
     }
     all_years = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in new_data.items()]))
@@ -119,45 +131,40 @@ def get_data(url):
     all_years.dataset_metadata = ds.attrs
     all_years.dataset_metadata["dimension"] = list(ds.dims)
     all_years.variable_metadata = ""
-    all_years.variable_metadata = ds["sie"].attrs
+    all_years.variable_metadata = ds[metric].attrs
     return all_years
 
 
-# urls = ['https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc', 
+# urls = ['https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc',
 #         'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc',
 #         'https://hyrax.epinux.com/opendap/local_data/osisaf_nh_iceextent_daily.nc']
 
 
-urls_dict = {'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc', 
-        'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc'}
+urls_dict = {"Sea Ice Extent":{'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc',
+                               'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc'},
+             "Sea Ice Area":{'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc',
+                             'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc',}}
 
-df = get_data(urls_dict['North'])
+sie_sia = pn.widgets.RadioBoxGroup(options=["Sea Ice Extent", "Sea Ice Area"])
 
-years = pn.widgets.MultiChoice(
-    name="Years:", options=list(df.columns), margin=(0, 20, 0, 0)
-)
+radio_group = pn.widgets.RadioButtonGroup(name='Hemisphere',
+                                          options=['North', 'South'],
+                                          button_type='success')
 
+df = get_data(urls_dict[sie_sia.value][radio_group.value])
 
-dataset = pn.widgets.MultiChoice(
-    name="Hemisphere", options=list(urls_dict.keys()), margin=(0, 20, 0, 0)
-)
+years = pn.widgets.MultiChoice(name="Years:",
+                               options=list(df.columns),
+                               margin=(0, 20, 0, 0))
 
-radio_group = pn.widgets.RadioButtonGroup(
-    name='Hemisphere', options=['North', 'South'], button_type='success')
-
-
-
-@pn.depends(years, radio_group)
-def get_plot(years, radio_group):
-    if radio_group:
-        url = urls_dict[radio_group]
-    else:
-        url = urls_dict[list(urls_dict.keys())[0]]
+@pn.depends(sie_sia, radio_group, years)
+def get_plot(sie_sia, radio_group, years):
+    url = urls_dict[sie_sia][radio_group]
     df = get_data(url=url)
     if years:
         df = transfer_metadata(df, years)
     mplot = get_mplot(df, years)
     return mplot
 
-pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)
+pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), pn.Column(sie_sia), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)
 

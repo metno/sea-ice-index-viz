@@ -101,8 +101,7 @@ def get_data(url):
     ds = xr.open_dataset(nc_url)
     ds = ds.sel(nv=0)
     df = ds.to_dataframe()
-    df = df.droplevel(1)
-    df = df[~df.index.duplicated(keep='first')]
+
     # Check whether to fetch Sea Ice Extent or Sea Ice Area.
     try:
         df["sie"]

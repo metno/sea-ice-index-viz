@@ -1,18 +1,15 @@
 import pandas as pd
 import xarray as xr
-from functools import reduce
 import colorcet as cc
 from bokeh.models import HoverTool
 import holoviews as hv
-import numpy as np
-import pandas as pd
-from holoviews import opts
 import panel as pn
 
 pn.extension()
 hv.extension("bokeh", "matplotlib")
 pn.extension(loading_spinner='dots', loading_color='#00aa41')
 pn.param.ParamMethod.loading_indicator = True
+
 
 def split_list(a, n):
     k, m = divmod(len(a), n)
@@ -98,6 +95,7 @@ def get_mplot(df, cols=None):
     )
     return mplot
 
+
 def get_data(url):
     nc_url = url
     ds = xr.open_dataset(nc_url)
@@ -158,6 +156,7 @@ years = pn.widgets.MultiChoice(name="Years:",
                                options=list(df.columns),
                                margin=(0, 20, 0, 0))
 
+
 @pn.depends(sie_sia, radio_group, years)
 def get_plot(sie_sia, radio_group, years):
     url = urls_dict[sie_sia][radio_group]
@@ -167,5 +166,5 @@ def get_plot(sie_sia, radio_group, years):
     mplot = get_mplot(df, years)
     return mplot
 
-pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), pn.Column(sie_sia), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)
 
+pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), pn.Column(sie_sia), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)

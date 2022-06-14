@@ -1,6 +1,6 @@
 import xarray as xr
 from bokeh.plotting import figure
-from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, MultiChoice, HoverTool
+from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, MultiChoice, HoverTool, DataRange1d
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
 import numpy as np
@@ -67,7 +67,7 @@ def prepare_plot_data(index, area, years):
 
 
 def make_plot(column_data_source, title, long_name, units):
-    inner_plot = figure(title=title, x_range=(1, 366), y_range=(0, 18))
+    inner_plot = figure(title=title, x_range=(1, 366), y_range=(DataRange1d(start=0)))
     inner_plot.multi_line(xs="day_of_year", ys="data", source=column_data_source, line_width=2)
 
     x_ticks = {1: '1 Jan',
@@ -92,17 +92,9 @@ def make_plot(column_data_source, title, long_name, units):
     inner_plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[2])
     inner_plot.yaxis.axis_label = f"{long_name} - {units}"
 
-    inner_plot.add_tools(
-        HoverTool(
-            show_arrow=False,
-            line_policy='next',
-            tooltips=[
-                ("Year", "@year"),
-                ('Day of year', '$data_x'),
-                ('Index value', '$data_y')
-            ]
-            )
-        )
+    inner_plot.add_tools(HoverTool(tooltips=[("Year", "@year"),
+                                             ('Day of year', '$data_x'),
+                                             ('Index value', '$data_y')]))
 
     return inner_plot
 

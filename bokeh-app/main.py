@@ -1,170 +1,143 @@
-import pandas as pd
 import xarray as xr
-import colorcet as cc
-from bokeh.models import HoverTool
-import holoviews as hv
-import panel as pn
-
-pn.extension()
-hv.extension("bokeh", "matplotlib")
-pn.extension(loading_spinner='dots', loading_color='#00aa41')
-pn.param.ParamMethod.loading_indicator = True
+from bokeh.plotting import figure
+from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, MultiChoice, HoverTool
+from bokeh.layouts import column, row
+from bokeh.io import curdoc
+import numpy as np
 
 
-def split_list(a, n):
-    k, m = divmod(len(a), n)
-    return list(
-        list(a[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)]) for i in range(n)
-    )
+def download_and_extract(index, area):
+    sie_dict = {"North": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
+                "South": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc"}
+    sia_dict = {'North': 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc',
+                'South': 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc'}
+
+    index_dict = {"Sea Ice Extent": sie_dict, "Sea Ice Area": sia_dict}
+    dataset = xr.open_dataset(index_dict[index][area])
+
+    title = dataset.title
+
+    array_index = {"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}
+    data_array = dataset[array_index[index]]
+
+    stripped_data = {str(year): values.values for year, values in data_array.groupby("time.year")}
+    is_leap_year = {year: data_array.time.sel(time=f"{year}-01-01").dt.is_leap_year for year in stripped_data.keys()}
+    long_name = data_array.attrs["long_name"]
+    units = data_array.attrs["units"]
+
+    return {"stripped_data": stripped_data,
+            "is_leap_year": is_leap_year,
+            "title": title,
+            "long_name": long_name,
+            "units": units}
 
 
-def get_ticks(df, pos):
-    splitter = split_list(df.index, 12)
-    months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ]
-    xticks_map = [i for i in zip([splitter[i][pos] for i in range(0, 12)], months)]
-    return xticks_map
+def prepare_plot_data(index, area, years):
+    extracted_dict = download_and_extract(index, area)
+
+    # x-locations for leap years, which have 366 days.
+    doy_leap = np.arange(1, 367, 1)
+    # Non-leap years have the same x-locations except for day 60 (29th of February).
+    doy_not_leap = doy_leap[np.arange(len(doy_leap)) != 59]
+
+    data = []
+    day_of_year = []
+    year_array = []
+
+    for year in years:
+        data.append(extracted_dict["stripped_data"][year])
+
+        # Make sure that day of year array is of the same length as the data array. This accounts for years that are
+        # not yet over in the data.
+        if extracted_dict["is_leap_year"][year]:
+            day_of_year.append(doy_leap[:len(data[-1])])
+            year_array.append(year)
+        else:
+            day_of_year.append(doy_not_leap[:len(data[-1])])
+            year_array.append(year)
+
+    plot_dict = {"day_of_year": day_of_year, "data": data, "year": year_array}
+    column_data_source = ColumnDataSource(plot_dict)
+
+    return {"column_data_source": column_data_source,
+            "years": list(extracted_dict["stripped_data"].keys()),
+            "title": extracted_dict["title"],
+            "long_name": extracted_dict["long_name"],
+            "units": extracted_dict["units"]}
 
 
-def transfer_metadata(df, cols):
-    dataset_metadata = df.dataset_metadata
-    variable_metadata = df.variable_metadata
-    df = df[cols]
-    df.dataset_metadata = ""
-    df.dataset_metadata = dataset_metadata
-    df.variable_metadata = ""
-    df.variable_metadata = variable_metadata
-    return df
+def make_plot(column_data_source, title, long_name, units):
+    inner_plot = figure(title=title, x_range=(1, 366), y_range=(0, 18))
+    inner_plot.multi_line(xs="day_of_year", ys="data", source=column_data_source, line_width=2)
 
+    x_ticks = {1: '1 Jan',
+               32: '1 Feb',
+               61: '1 Mar',
+               92: '1 Apr',
+               122: '1 May',
+               153: '1 Jun',
+               183: '1 Jul',
+               214: '1 Aug',
+               245: '1 Sep',
+               275: '1 Oct',
+               306: '1 Nov',
+               336: '1 Dec',
+               366: '31 Dec'}
 
-def get_mplot(df, cols=None):
-    if cols:
-        df = transfer_metadata(df, cols)
-    if len(df.columns) == 0:
-        print("No coumns selected")
-        return None
-    grid_style = {
-        "grid_line_color": "black",
-        "grid_line_width": 1.1,
-        # "ygrid_bounds": (0.3, 0.7),
-        "minor_ygrid_line_color": "lightgray",
-        "minor_xgrid_line_color": "lightgray",
-        "xgrid_line_dash": [4, 4],
-    }
-    colors = cc.glasbey_light[: len(list(df.columns))]
-    xticks_map = get_ticks(df, 15)
-    multi_curve = [
-        hv.Curve((df.index, df[v]), label=str(v)).opts(
-            tools=[
-                HoverTool(
-                    tooltips=[
-                        ("Year", str(v)),
-                        ("DoY", "$index"),
-                        (f"{df.variable_metadata['long_name']}", "@y"),
-                    ],
-                    toggleable=False,
-                )
-            ],
-            xticks=xticks_map,
-            xrotation=45,
-            width=900,
-            height=400,
-            line_color=colors[i],
-            gridstyle=grid_style,
-            show_grid=True,
+    inner_plot.xaxis.ticker = list(x_ticks.keys())
+    inner_plot.xaxis.major_label_overrides = x_ticks
+    inner_plot.xaxis.axis_label = "Day of the year"
+
+    # Make sure that the y-axis has ticks equaling multiples of 2.
+    inner_plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[2])
+    inner_plot.yaxis.axis_label = f"{long_name} - {units}"
+
+    inner_plot.add_tools(
+        HoverTool(
+            show_arrow=False,
+            line_policy='next',
+            tooltips=[
+                ("Year", "@year"),
+                ('Day of year', '$data_x'),
+                ('Index value', '$data_y')
+            ]
+            )
         )
-        for i, v in enumerate(df)
-    ]
-    mplot = hv.Overlay(multi_curve)
-    mplot.opts(
-        title=f"{df.dataset_metadata['title']}",
-        ylabel=f"{df.variable_metadata['long_name']} - {df.variable_metadata['units']}",
-        xlabel="Day of the Year",
-    )
-    return mplot
+
+    return inner_plot
 
 
-def get_data(url):
-    nc_url = url
-    ds = xr.open_dataset(nc_url)
-    ds = ds.sel(nv=0)
-    df = ds.to_dataframe()
-    df = df.droplevel(1)
-    df = df[~df.index.duplicated(keep='first')]
-    # Check whether to fetch Sea Ice Extent or Sea Ice Area.
-    try:
-        df["sie"]
-        metric = "sie"
-    except:
-        try:
-            df["sia"]
-            metric = "sia"
-        except:
-            print("Could not find a SIE or SIA column in the data!")
+def update_plot(attr, old, new):
+    # Update plot with new values from selectors.
+    index = index_selector.value
+    area = area_selector.value
+    years = years_selector.value
 
-    try:
-        new_data = {
-            str(i): df[metric].loc[df.index.groupby(df.index.year)[i]].values
-            for i in df.index.groupby(df.index.year)
-        }
-    except AttributeError:
-        print('multi index data using level 0')
-        new_data = {
-        str(i): df[metric].loc[df.index.groupby(df.index.get_level_values(1).year)[i]].values
-        for i in df.index.get_level_values(1).groupby(df.index.get_level_values(1).year)
-    }
-    all_years = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in new_data.items()]))
-    all_years.dataset_metadata = ""
-    all_years.dataset_metadata = ds.attrs
-    all_years.dataset_metadata["dimension"] = list(ds.dims)
-    all_years.variable_metadata = ""
-    all_years.variable_metadata = ds[metric].attrs
-    return all_years
+    new_plot_data = prepare_plot_data(index, area, years)
+    plot.title.text = new_plot_data["title"]
+    source.data.update(new_plot_data["column_data_source"].data)
 
 
-# urls = ['https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc',
-#         'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc',
-#         'https://hyrax.epinux.com/opendap/local_data/osisaf_nh_iceextent_daily.nc']
+index_selector = Select(title="Index:", value="Sea Ice Extent", options=["Sea Ice Extent", "Sea Ice Area"])
+area_selector = Select(title="Area:", value="North", options=["North", "South"])
 
+year_list = list(download_and_extract(index_selector.value, area_selector.value)["stripped_data"].keys())
+years_selector = MultiChoice(value=year_list, options=year_list)
 
-urls_dict = {"Sea Ice Extent":{'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc',
-                               'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc'},
-             "Sea Ice Area":{'North':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc',
-                             'South':'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc',}}
+plot_data = prepare_plot_data(index_selector.value, area_selector.value, years_selector.value)
+source = plot_data["column_data_source"]
 
-sie_sia = pn.widgets.RadioBoxGroup(options=["Sea Ice Extent", "Sea Ice Area"])
+plot = make_plot(source, plot_data["title"], plot_data["long_name"], plot_data["units"])
 
-radio_group = pn.widgets.RadioButtonGroup(name='Hemisphere',
-                                          options=['North', 'South'],
-                                          button_type='success')
+# Layout
+inputs = column(index_selector, area_selector, years_selector)
+row1 = row(plot, inputs)
+tab_managed = Panel(child=row1)
 
-df = get_data(urls_dict[sie_sia.value][radio_group.value])
+layout = Tabs(tabs=[tab_managed])
 
-years = pn.widgets.MultiChoice(name="Years:",
-                               options=list(df.columns),
-                               margin=(0, 20, 0, 0))
+index_selector.on_change('value', update_plot)
+area_selector.on_change('value', update_plot)
+years_selector.on_change('value', update_plot)
 
-
-@pn.depends(sie_sia, radio_group, years)
-def get_plot(sie_sia, radio_group, years):
-    url = urls_dict[sie_sia][radio_group]
-    df = get_data(url=url)
-    if years:
-        df = transfer_metadata(df, years)
-    mplot = get_mplot(df, years)
-    return mplot
-
-
-pn.panel(pn.Column("##Sea Ice Extent", "**Hemisphere:**", pn.Column(radio_group), pn.Column(sie_sia), get_plot, pn.Column(years), width_policy="max").servable(), loading_indicator=True)
+curdoc().add_root(layout)

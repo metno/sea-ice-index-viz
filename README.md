@@ -13,7 +13,7 @@ Visualization tools for the Sea Ice Indexes
 
 * **Bokeh APP:**
 
-   https://mybinder.org/v2/gh/metno/sea-ice-index-viz/main?urlpath=/proxy/5006/bokeh-app    
+   https://mybinder.org/v2/gh/huaracheguarache/sea-ice-index-viz/rewrite?urlpath=%2Fproxy%2F5006%2Fbokeh-app
 
 
 ### Local deployment

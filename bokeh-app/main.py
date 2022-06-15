@@ -100,29 +100,19 @@ def get_data(url):
     nc_url = url
     ds = xr.open_dataset(nc_url)
     ds = ds.sel(nv=0)
-
-    # Convert all years to leap years and fill added days with -999.
-    ds = ds.convert_calendar("all_leap", missing=-999)
-
+    df = ds.to_dataframe()
+    df = df.droplevel(1)
+    df = df[~df.index.duplicated(keep='first')]
     # Check whether to fetch Sea Ice Extent or Sea Ice Area.
     try:
-        ds["sie"]
+        df["sie"]
         metric = "sie"
     except:
         try:
-            ds["sia"]
+            df["sia"]
             metric = "sia"
         except:
-            print("Could not find a SIE or SIA in the data!")
-
-    # Replace the filler values by interpolating the values of the day before
-    # and after the 29th.
-    for i, val in enumerate(ds[metric].values):
-        if val == -999:
-            ds[metric].values[i] = (ds[metric].values[i-1]
-                                    + ds[metric].values[i+1]) / 2
-
-    df = ds.to_dataframe()
+            print("Could not find a SIE or SIA column in the data!")
 
     try:
         new_data = {

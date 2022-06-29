@@ -188,8 +188,9 @@ cds_maximum = min_max_dict["cds_maximum"]
 cds_individual_years = calculate_individual_years(da)
 
 
-# Plot the figure.
-plot = figure(title=extracted_data["title"], height=600, width=900)
+# Plot the figure and make sure that it uses all of the available space.
+plot = figure(title=extracted_data["title"])
+plot.sizing_mode = "stretch_both"
 
 # Create an empty list to store labels and glyphs for plotting legends.
 legend_list = []

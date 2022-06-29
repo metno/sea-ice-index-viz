@@ -1,10 +1,9 @@
 dependencies:
+  - python==3.10.5
   - bokeh
-  - pandas
-  - pip
-  - netcdf4
-  - xarray
-  - panel
-  - holoviews
-  - pip:
-    - jupyter-server-proxy
+  - netcdf4==1.5.8
+  - xarray==2022.3.0
+  - numpy
+  - cmcrameri
+  - matplotlib
+  - jupyter-server-proxy

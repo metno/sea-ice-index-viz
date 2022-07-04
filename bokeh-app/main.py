@@ -1,7 +1,7 @@
 import xarray as xr
 from bokeh.plotting import figure
 from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS,\
-    Button, Paragraph
+    Paragraph, Dropdown
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
 import numpy as np
@@ -297,65 +297,45 @@ plot.y_range = Range1d(start=0, end=upper_y_lim)
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-# Add a button to remove everything from the canvas.
-button_clear_plot = Button(label='Clear plot')
-cb1 = CustomJS(args=dict(fig=plot, btn=button_clear_plot)
-               , code='''
-for (var i = 0; i < fig.renderers.length; i++){
-    fig.renderers[i].visible = false};
+# Create a dropdown button with plot shortcuts.
+menu = [("Erase all", "erase_all"),
+        ("Show all", "show_all"),
+        ("Last 5 years", "last_5_years"),
+        ("Last 2 years", "last_2_years")]
+
+plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
+
+# Callback code.
+callback = CustomJS(args=dict(fig=plot), code='''
+if (this.item === "erase_all") {
+    for (var i = 0; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible = false};
+        
+} else if (this.item === "show_all") {
+    for (var i = 0; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible = true};
+
+} else if (this.item === "last_5_years") {
+    for (var i = 5; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible=false};
+
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 5); i--) {
+        fig.renderers[i-1].visible=true};
+
+} else if (this.item === "last_2_years") {
+    for (var i = 5; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible=false};
+
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--) {
+        fig.renderers[i-1].visible=true};
+}
 ''')
 
-button_clear_plot.js_on_click(cb1)
-
-# Add a button to show everything.
-button_show_everything = Button(label='Show everything')
-cb2 = CustomJS(args=dict(fig=plot, btn=button_show_everything)
-               , code='''
-for (var i = 0; i < fig.renderers.length; i++){
-    fig.renderers[i].visible = true};
-''')
-
-button_show_everything.js_on_click(cb2)
-
-# Add a button to show all individual years.
-button_individual_years = Button(label='Show all years')
-cb3 = CustomJS(args=dict(fig=plot, btn=button_individual_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=true}
-''')
-
-button_individual_years.js_on_click(cb3)
-
-# Add a button to show the last 5 years.
-button_last_five_years = Button(label='Show last 5 years')
-cb4 = CustomJS(args=dict(fig=plot, btn=button_last_five_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=false};
-    
-for (var i = fig.renderers.length; i > (fig.renderers.length - 5); i--){
-    fig.renderers[i-1].visible=true};
-''')
-
-button_last_five_years.js_on_click(cb4)
-
-# Add a button to show the last 2 years.
-button_last_two_years = Button(label='Show last two years')
-cb5 = CustomJS(args=dict(fig=plot, btn=button_last_two_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=false};
-    
-for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--){
-    fig.renderers[i-1].visible=true};
-''')
-
-button_last_two_years.js_on_click(cb5)
+# Make sure that callback code runs when user clicks on one of the choices.
+plot_shortcuts.js_on_event("menu_item_click", callback)
 
 # Layout
-inputs = column(index_selector, area_selector, reference_period_selector, button_clear_plot, button_show_everything,
-                button_individual_years, button_last_five_years, button_last_two_years)
+inputs = column(index_selector, area_selector, reference_period_selector, plot_shortcuts)
 row1 = row(plot, inputs)
 
 # Create a label to signify that the tool is WIP.

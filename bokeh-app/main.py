@@ -1,7 +1,7 @@
 import xarray as xr
 from bokeh.plotting import figure
 from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS,\
-    Paragraph, Dropdown
+    Paragraph, Dropdown, Label
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
 import numpy as np
@@ -296,6 +296,20 @@ upper_y_lim = find_nice_ylimit(da)
 plot.y_range = Range1d(start=0, end=upper_y_lim)
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+
+# Add a bottom label with information about the data that's used to make the graphic.
+citation_text = 'v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI' + '\n'\
+                + 'Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)'
+
+citation = Label(x=5,
+                 y=5,
+                 x_units='screen',
+                 y_units='screen',
+                 text=citation_text,
+                 text_font_size='12px',
+                 text_color='black')
+
+plot.add_layout(citation)
 
 # Create a dropdown button with plot shortcuts.
 menu = [("Erase all", "erase_all"),

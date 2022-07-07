@@ -108,12 +108,46 @@ def find_nice_ylimit(da):
     return int(2 * round(da.max().values / 2) + 2)
 
 
-def find_line_colours(years):
+def decade_colour_dict(decade, colour):
+    normalisation = np.linspace(0, 0.5, 10)
+    normalised_colour = [matplotlib.colors.to_hex(colour) for colour in colour(normalisation)]
+    years_in_decade = np.arange(decade, decade + 10, 1).astype(str)
+
+    return {year: year_colour for year, year_colour in zip(years_in_decade, normalised_colour)}
+
+
+def find_line_colours(years, colour):
     """Find a colors for the individual years."""
-    normalised = np.linspace(0, 1, len(years))
-    colours = cm.batlowS(normalised)
-    colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
-    colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
+
+    if colour == "decadal":
+        decades = [1970, 1980, 1990, 2000, 2010, 2020]
+        colours = [matplotlib.cm.Purples_r,
+                   matplotlib.cm.Purples_r,
+                   matplotlib.cm.Blues_r,
+                   matplotlib.cm.Greens_r,
+                   matplotlib.cm.Reds_r,
+                   matplotlib.cm.Wistia_r]
+
+        full_colour_dict = {}
+
+        for decade, colour in zip(decades, colours):
+            decade_dict = decade_colour_dict(decade, colour)
+            full_colour_dict.update(decade_dict)
+
+        colour_dict = {year: full_colour_dict[year] for year in years}
+        # Set the color of the current year to black.
+        colour_dict[list(years)[-1]] = "#000000"
+
+    else:
+        translation_dictionary = {"viridis": matplotlib.cm.viridis,
+                                  "plasma": matplotlib.cm.plasma,
+                                  "batlow": cm.batlow,
+                                  "batlowS": cm.batlowS}
+
+        normalised = np.linspace(0, 1, len(years))
+        colours = translation_dictionary[colour](normalised)
+        colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
+        colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
 
     return colour_dict
 
@@ -156,6 +190,14 @@ def update_plot(attr, old, new):
     plot.y_range.reset_end = find_nice_ylimit(da)
 
 
+def update_line_colour(attr, old, new):
+    colour = color_scale_selector.value
+    colours_dict = find_line_colours(cds_individual_years.keys(), colour)
+
+    for year, individual_year_glyph in zip(cds_individual_years.keys(), individual_years_glyphs):
+        individual_year_glyph.glyph.line_color = colours_dict[year]
+
+
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="Sea Ice Extent", options=["Sea Ice Extent", "Sea Ice Area"])
 area_selector = Select(title="Area:", value="Northern Hemisphere",
@@ -165,6 +207,15 @@ area_selector = Select(title="Area:", value="Northern Hemisphere",
 reference_period_selector = Select(title="Reference period of percentiles and median:",
                                    value="1981-2010",
                                    options=["1981-2010", "1991-2020"])
+
+# Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
+color_scale_selector = Select(title="Color scale of yearly data:",
+                              value="decadal",
+                              options=[("decadal", "By decade"),
+                                       ("viridis", "viridis (CVD friendly)"),
+                                       ("plasma", "plasma (CVD friendly)"),
+                                       ("batlow", "batlow (CVD friendly)"),
+                                       ("batlowS", "batlowS (CVD friendly)")])
 
 # Download the data for the default index and area values.
 ds = download_dataset(index_selector.value, area_selector.value)
@@ -245,7 +296,7 @@ plot.add_tools(HoverTool(renderers=[maximum], tooltips=[('Day of year', '$data_x
 
 
 # Plot the individual years.
-colours_dict = find_line_colours(cds_individual_years.keys())
+colours_dict = find_line_colours(cds_individual_years.keys(), color_scale_selector.value)
 individual_years_glyphs = []
 for year, cds_individual_year in cds_individual_years.items():
     line_glyph = plot.line(x="day_of_year",
@@ -255,6 +306,9 @@ for year, cds_individual_year in cds_individual_years.items():
                            line_color=colours_dict[year])
     legend_list.append((year, [line_glyph]))
     individual_years_glyphs.append(line_glyph)
+
+# Make sure the current year has a thicker line than the other years.
+line_glyph.glyph.line_width = 3
 
 # Maximum number of elements in a sublist.
 n = 23
@@ -335,7 +389,7 @@ if (this.item === "erase_all") {
 plot_shortcuts.js_on_event("menu_item_click", callback)
 
 # Layout
-inputs = column(index_selector, area_selector, reference_period_selector, plot_shortcuts)
+inputs = column(index_selector, area_selector, reference_period_selector, plot_shortcuts, color_scale_selector)
 row1 = row(plot, inputs)
 
 # Create a label to signify that the tool is WIP.
@@ -346,5 +400,6 @@ column1.sizing_mode = "stretch_both"
 index_selector.on_change('value', update_plot)
 area_selector.on_change('value', update_plot)
 reference_period_selector.on_change('value', update_plot)
+color_scale_selector.on_change('value', update_line_colour)
 
 curdoc().add_root(column1)

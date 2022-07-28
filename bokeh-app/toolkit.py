@@ -64,9 +64,8 @@ def calculate_percentiles_and_median(da):
 
 def calculate_min_max(da):
     # Min/max values are calculated based on the data in the entire period except for the current year.
-    first_year = da.time.dt.year[0].values
-    second_to_last_year = da.time.dt.year[-2].values
-    sliced_da = da.sel(time=slice(str(first_year), str(second_to_last_year)))
+    years_list = get_list_of_years(da)
+    sliced_da = da.sel(time=slice(years_list[0], years_list[-2]))
 
     minimum = sliced_da.groupby("time.dayofyear").min().values
     maximum_array = sliced_da.groupby("time.dayofyear").max()

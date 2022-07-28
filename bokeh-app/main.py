@@ -1,207 +1,15 @@
-import xarray as xr
 from bokeh.plotting import figure
-from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS,\
-    Paragraph, Dropdown
+from bokeh.models import AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS, Paragraph, Dropdown
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
-import numpy as np
-import cmcrameri.cm as cm
-import matplotlib
-
-
-def download_dataset(index, area):
-    sie_dict = {"Northern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh"
-                                       "/osisaf_nh_sie_daily.nc",
-                "Southern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh"
-                                       "/osisaf_sh_sie_daily.nc"}
-    sia_dict = {"Northern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh"
-                                       "/osisaf_nh_sia_daily.nc",
-                "Southern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh"
-                                       "/osisaf_sh_sia_daily.nc"}
-    url_dict = {"Sea Ice Extent": sie_dict, "Sea Ice Area": sia_dict}
-
-    return xr.open_dataset(url_dict[index][area])
-
-
-def extract_data(ds, index):
-    index_translation = {"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}
-    da = ds[index_translation[index]]
-    title = ds.title
-    long_name = da.attrs["long_name"]
-    units = da.attrs["units"]
-
-    return {"da": da, "title": title, "long_name": long_name, "units": units}
-
-
-def get_list_of_years(da):
-    return np.unique(da.time.dt.year.values).astype(str)
-
-
-def convert_and_interpolate_calendar(da):
-    # Convert the calendar to leap years for all years in the data, and fill the missing day with -999 as value.
-    da = da.convert_calendar("all_leap", missing=-999)
-
-    # Replace the -999 values with interpolated values between the preceding and succeeding day.
-    for i, val in enumerate(da.values):
-        if val == -999:
-            da.values[i] = (da.values[i-1] + da.values[i+1]) / 2
-
-    return da
-
-
-def calculate_percentiles_and_median(da):
-    percentile_10 = da.groupby("time.dayofyear").quantile(0.10).values
-    percentile_90 = da.groupby("time.dayofyear").quantile(0.90).values
-    percentile_25 = da.groupby("time.dayofyear").quantile(0.25).values
-    percentile_75 = da.groupby("time.dayofyear").quantile(0.75).values
-    median_array = da.groupby("time.dayofyear").median()
-    day_of_year = median_array.dayofyear.values
-    median = median_array.values
-
-    cds_percentile_1090 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_10": percentile_10,
-                                            "percentile_90": percentile_90})
-    cds_percentile_2575 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_25": percentile_25,
-                                            "percentile_75": percentile_75})
-    cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median})
-
-    return {"cds_percentile_1090": cds_percentile_1090,
-            "cds_percentile_2575": cds_percentile_2575,
-            "cds_median": cds_median}
-
-
-def calculate_min_max(da):
-    # Min/max values are calculated based on the data in the entire period except for the current year.
-    first_year = da.time.dt.year[0].values
-    second_to_last_year = da.time.dt.year[-2].values
-    sliced_da = da.sel(time=slice(str(first_year), str(second_to_last_year)))
-
-    minimum = sliced_da.groupby("time.dayofyear").min().values
-    maximum_array = sliced_da.groupby("time.dayofyear").max()
-    day_of_year = maximum_array.dayofyear.values
-    maximum = maximum_array.values
-
-    cds_minimum = ColumnDataSource({"day_of_year": day_of_year, "minimum": minimum})
-    cds_maximum = ColumnDataSource({"day_of_year": day_of_year, "maximum": maximum})
-
-    return {"cds_minimum": cds_minimum, "cds_maximum": cds_maximum}
-
-
-def calculate_individual_years(da):
-    da_converted = da.convert_calendar("all_leap")
-    years = get_list_of_years(da_converted)
-
-    cds_dict = {year: None for year in years}
-    for year in years:
-        one_year_data = da_converted.sel(time=year)
-        date = one_year_data.time.dt.strftime("%Y-%m-%d").values
-        day_of_year = one_year_data.time.dt.dayofyear.values
-        index_values = one_year_data.values
-        cds_dict[year] = ColumnDataSource({"date": date, "day_of_year": day_of_year, "index_values": index_values})
-
-    return cds_dict
-
-
-def find_nice_ylimit(da):
-    """Find a nice y-limit that's divisible by two."""
-    return int(2 * round(da.max().values / 2) + 2)
-
-
-def decade_colour_dict(decade, colour):
-    normalisation = np.linspace(0, 0.5, 10)
-    normalised_colour = [matplotlib.colors.to_hex(colour) for colour in colour(normalisation)]
-    years_in_decade = np.arange(decade, decade + 10, 1).astype(str)
-
-    return {year: year_colour for year, year_colour in zip(years_in_decade, normalised_colour)}
-
-
-def find_line_colours(years, colour):
-    """Find a colors for the individual years."""
-
-    if colour == "decadal":
-        decades = [1970, 1980, 1990, 2000, 2010, 2020]
-        colours = [matplotlib.cm.Purples_r,
-                   matplotlib.cm.Purples_r,
-                   matplotlib.cm.Blues_r,
-                   matplotlib.cm.Greens_r,
-                   matplotlib.cm.Reds_r,
-                   matplotlib.cm.Wistia_r]
-
-        full_colour_dict = {}
-
-        for decade, colour in zip(decades, colours):
-            decade_dict = decade_colour_dict(decade, colour)
-            full_colour_dict.update(decade_dict)
-
-        colour_dict = {year: full_colour_dict[year] for year in years}
-        # Set the color of the current year to black.
-        colour_dict[list(years)[-1]] = "#000000"
-
-    else:
-        translation_dictionary = {"viridis": matplotlib.cm.viridis,
-                                  "plasma": matplotlib.cm.plasma,
-                                  "batlow": cm.batlow,
-                                  "batlowS": cm.batlowS}
-
-        normalised = np.linspace(0, 1, len(years))
-        colours = translation_dictionary[colour](normalised)
-        colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
-        colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
-
-    return colour_dict
-
-
-def update_plot(attr, old, new):
-    # Update plot with new values from selectors.
-    index = index_selector.value
-    area = area_selector.value
-    reference_period = reference_period_selector.value
-
-    ds = download_dataset(index, area)
-    extracted_data = extract_data(ds, index)
-    da = extracted_data["da"]
-
-    da_converted = convert_and_interpolate_calendar(da)
-
-    start_year = reference_period[:4]
-    end_year = reference_period[5:]
-    percentiles_and_median_dict = calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
-    cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
-    cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
-    cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
-
-    min_max_dict = calculate_min_max(da_converted)
-    cds_minimum.data.update(min_max_dict["cds_minimum"].data)
-    cds_maximum.data.update(min_max_dict["cds_maximum"].data)
-
-    # Calculate new columndatasources for the individual years.
-    new_cds_individual_years = calculate_individual_years(da)
-    # Update the existing columndatasources with the new data.
-    for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
-        old_cds.data.update(new_cds.data)
-
-    # Set plot attributes.
-    plot.title.text = extracted_data["title"]
-    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
-
-    # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
-    plot.y_range.end = find_nice_ylimit(da)
-    plot.y_range.reset_end = find_nice_ylimit(da)
-
-
-def update_line_colour(attr, old, new):
-    colour = color_scale_selector.value
-    colours_dict = find_line_colours(cds_individual_years.keys(), colour)
-
-    for year, individual_year_glyph in zip(cds_individual_years.keys(), individual_years_glyphs):
-        individual_year_glyph.glyph.line_color = colours_dict[year]
+import toolkit as tk
 
 
 # Add dropdown menus for index and area selection.
-index_selector = Select(title="Index:", value="Sea Ice Extent", options=["Sea Ice Extent", "Sea Ice Area"])
-area_selector = Select(title="Area:", value="Northern Hemisphere",
-                       options=["Northern Hemisphere", "Southern Hemisphere"])
+index_selector = Select(title="Index:", value="sie",
+                        options=[("sie", "Sea Ice Extent"), ("sia", "Sea Ice Area")])
+area_selector = Select(title="Area:", value="NH",
+                       options=[("NH", "Northern Hemisphere"), ("SH", "Southern Hemisphere")])
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",
@@ -218,28 +26,28 @@ color_scale_selector = Select(title="Color scale of yearly data:",
                                        ("batlowS", "batlowS (CVD friendly)")])
 
 # Download the data for the default index and area values.
-ds = download_dataset(index_selector.value, area_selector.value)
-extracted_data = extract_data(ds, index_selector.value)
+ds = tk.download_dataset(index_selector.value, area_selector.value)
+extracted_data = tk.extract_data(ds, index_selector.value)
 da = extracted_data["da"]
 
 # Calculate the percentiles and median, and the minimum and maximum value. We have to convert the dataset to use an
 # all leap calendar and interpolate to fill in for the missing February 29th values.
-da_converted = convert_and_interpolate_calendar(da)
+da_converted = tk.convert_and_interpolate_calendar(da)
 
-percentiles_and_median_dict = calculate_percentiles_and_median(da_converted)
+percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted)
 cds_percentile_1090 = percentiles_and_median_dict["cds_percentile_1090"]
 cds_percentile_2575 = percentiles_and_median_dict["cds_percentile_2575"]
 cds_median = percentiles_and_median_dict["cds_median"]
 
-min_max_dict = calculate_min_max(da_converted)
+min_max_dict = tk.calculate_min_max(da_converted)
 cds_minimum = min_max_dict["cds_minimum"]
 cds_maximum = min_max_dict["cds_maximum"]
 
 # Calculate index of individual years.
-cds_individual_years = calculate_individual_years(da)
+cds_individual_years = tk.calculate_individual_years(da)
 
 
-# Plot the figure and make sure that it uses all of the available space.
+# Plot the figure and make sure that it uses all available space.
 plot = figure(title=extracted_data["title"])
 plot.sizing_mode = "stretch_both"
 
@@ -296,7 +104,7 @@ plot.add_tools(HoverTool(renderers=[maximum], tooltips=[('Day of year', '$data_x
 
 
 # Plot the individual years.
-colours_dict = find_line_colours(cds_individual_years.keys(), color_scale_selector.value)
+colours_dict = tk.find_line_colours(cds_individual_years.keys(), color_scale_selector.value)
 individual_years_glyphs = []
 for year, cds_individual_year in cds_individual_years.items():
     line_glyph = plot.line(x="day_of_year",
@@ -310,7 +118,11 @@ for year, cds_individual_year in cds_individual_years.items():
 # Make sure the current year has a thicker line than the other years.
 line_glyph.glyph.line_width = 3
 
-# Maximum number of elements in a sublist.
+# To plot legends for the individual years we need to split the list of legends into several sublists. If we don't do
+# this the list will be so long that it's out of frame. The number below is the maximum number of elements that can
+# be inside one sublist. This number was determined with basic testing on one specific computer. This is an issue
+# because other clients can have computers with a different screen resolution which can fit more legends. Keep this
+# solution for now, but check if there's a better way to solve this.
 n = 23
 legend_split = [legend_list[i:i+n] for i in range(0, len(legend_list), n)]
 
@@ -319,6 +131,7 @@ for sublist in legend_split:
     legend.spacing = 1
     plot.add_layout(legend, "right")
 
+# Make the clicking the legend hide/show the given element.
 plot.legend.click_policy = "hide"
 
 # Add a hovertool to display the year, day of year, and index value of the individual years.
@@ -327,6 +140,7 @@ plot.add_tools(HoverTool(renderers=individual_years_glyphs,
                                    ('Day of year', '@day_of_year'),
                                    ('Index value', '@index_values')]))
 
+# Hardcode the x-ticks (day_of_year, date).
 plot.x_range = Range1d(start=1, end=366)
 x_ticks = {1: '1 Jan',
            32: '1 Feb',
@@ -346,7 +160,8 @@ plot.xaxis.ticker = list(x_ticks.keys())
 plot.xaxis.major_label_overrides = x_ticks
 plot.xaxis.axis_label = "Date"
 
-upper_y_lim = find_nice_ylimit(da)
+# Find a nice upper y-limit divisible by two.
+upper_y_lim = tk.find_nice_ylimit(da)
 plot.y_range = Range1d(start=0, end=upper_y_lim)
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
@@ -359,7 +174,7 @@ menu = [("Erase all", "erase_all"),
 
 plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
 
-# Callback code.
+# The plot shortcuts use the following javascript callback code.
 callback = CustomJS(args=dict(fig=plot), code='''
 if (this.item === "erase_all") {
     for (var i = 0; i < fig.renderers.length; i++) {
@@ -396,6 +211,53 @@ row1 = row(plot, inputs)
 text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
 column1 = column(text, row1)
 column1.sizing_mode = "stretch_both"
+
+
+def update_plot(attr, old, new):
+    # Update plot with new values from selectors.
+    index = index_selector.value
+    area = area_selector.value
+    reference_period = reference_period_selector.value
+
+    ds = tk.download_dataset(index, area)
+    extracted_data = tk.extract_data(ds, index)
+    da = extracted_data["da"]
+
+    da_converted = tk.convert_and_interpolate_calendar(da)
+
+    start_year = reference_period[:4]
+    end_year = reference_period[5:]
+    percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
+    cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
+    cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
+    cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+
+    min_max_dict = tk.calculate_min_max(da_converted)
+    cds_minimum.data.update(min_max_dict["cds_minimum"].data)
+    cds_maximum.data.update(min_max_dict["cds_maximum"].data)
+
+    # Calculate new columndatasources for the individual years.
+    new_cds_individual_years = tk.calculate_individual_years(da)
+    # Update the existing columndatasources with the new data.
+    for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
+        old_cds.data.update(new_cds.data)
+
+    # Set plot attributes.
+    plot.title.text = extracted_data["title"]
+    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+
+    # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
+    plot.y_range.end = tk.find_nice_ylimit(da)
+    plot.y_range.reset_end = plot.y_range.end
+
+
+def update_line_colour(attr, old, new):
+    colour = color_scale_selector.value
+    colours_dict = tk.find_line_colours(cds_individual_years.keys(), colour)
+
+    for year, individual_year_glyph in zip(cds_individual_years.keys(), individual_years_glyphs):
+        individual_year_glyph.glyph.line_color = colours_dict[year]
+
 
 index_selector.on_change('value', update_plot)
 area_selector.on_change('value', update_plot)

@@ -16,6 +16,14 @@ reference_period_selector = Select(title="Reference period of percentiles and me
                                    value="1981-2010",
                                    options=["1981-2010", "1991-2020"])
 
+# Make a dropdown list with preselected zoom levels.
+zoom_shortcuts_menu = [("Year", "year"),
+                       ("Two months centered on latest observation", "zoom"),
+                       ("Min extent", "min_extent"),
+                       ("Max extent", "max_extent")]
+
+zoom_shortcuts = Dropdown(label="Zoom shortcuts", menu=zoom_shortcuts_menu)
+
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
 color_scale_selector = Select(title="Color scale of yearly data:",
                               value="decadal",
@@ -204,7 +212,12 @@ if (this.item === "erase_all") {
 plot_shortcuts.js_on_event("menu_item_click", callback)
 
 # Layout
-inputs = column(index_selector, area_selector, reference_period_selector, plot_shortcuts, color_scale_selector)
+inputs = column(index_selector,
+                area_selector,
+                reference_period_selector,
+                plot_shortcuts,
+                zoom_shortcuts,
+                color_scale_selector)
 row1 = row(plot, inputs)
 
 # Create a label to signify that the tool is WIP.
@@ -213,7 +226,11 @@ column1 = column(text, row1)
 column1.sizing_mode = "stretch_both"
 
 
-def update_plot(attr, old, new):
+def update_data(attr, old, new):
+    # Reset the x-range in case the plot has been zoomed in.
+    plot.x_range.start = 1
+    plot.x_range.end = 366
+
     # Update plot with new values from selectors.
     index = index_selector.value
     area = area_selector.value
@@ -251,6 +268,34 @@ def update_plot(attr, old, new):
     plot.y_range.reset_end = plot.y_range.end
 
 
+def update_zoom(new_zoom):
+    if new_zoom.item == 'year':
+        plot.x_range.start = 1
+        plot.x_range.end = 366
+
+    elif new_zoom.item == 'zoom':
+        # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
+        # upper bound is not more than 31st of Dec.
+        x_range_start = line_glyph.data_source.data['day_of_year'][-1] - 30
+        x_range_end = line_glyph.data_source.data['day_of_year'][-1] + 30
+        plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
+        plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
+
+    elif new_zoom.item == 'min_extent':
+        # The day of year with the minimum value depends on which hemisphere is considered. Choose 15th of September
+        # for the NH and 15th of February for the SH.
+        min_doy = (259 if area_selector.value == "NH" else 46)
+        plot.x_range.start = min_doy - 30
+        plot.x_range.end = min_doy + 30
+
+    elif new_zoom.item == 'max_extent':
+        # The day of year with the maximum value depends on which hemisphere is considered. Choose 15th of March
+        # for the NH and 15th of September for the SH.
+        doy_max = (61 if area_selector.value == "NH" else 259)
+        plot.x_range.start = doy_max - 30
+        plot.x_range.end = doy_max + 30
+
+
 def update_line_colour(attr, old, new):
     colour = color_scale_selector.value
     colours_dict = tk.find_line_colours(cds_individual_years.keys(), colour)
@@ -259,9 +304,10 @@ def update_line_colour(attr, old, new):
         individual_year_glyph.glyph.line_color = colours_dict[year]
 
 
-index_selector.on_change('value', update_plot)
-area_selector.on_change('value', update_plot)
-reference_period_selector.on_change('value', update_plot)
+index_selector.on_change('value', update_data)
+area_selector.on_change('value', update_data)
+reference_period_selector.on_change('value', update_data)
+zoom_shortcuts.on_click(update_zoom)
 color_scale_selector.on_change('value', update_line_colour)
 
 curdoc().add_root(column1)

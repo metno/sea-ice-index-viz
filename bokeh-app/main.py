@@ -278,6 +278,8 @@ def update_zoom(new_zoom):
     if new_zoom.item == 'year':
         plot.x_range.start = 1
         plot.x_range.end = 366
+        plot.y_range.start = 0
+        plot.y_range.end = plot.y_range.reset_end
 
     elif new_zoom.item == 'zoom':
         # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
@@ -286,6 +288,7 @@ def update_zoom(new_zoom):
         x_range_end = line_glyph.data_source.data['day_of_year'][-1] + 30
         plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
         plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
+        set_zoom_yrange(padding=0.5)
 
     elif new_zoom.item == 'min_extent':
         # The day of year with the minimum value depends on which hemisphere is considered. Choose 15th of September
@@ -293,6 +296,7 @@ def update_zoom(new_zoom):
         min_doy = (259 if area_selector.value == "NH" else 46)
         plot.x_range.start = min_doy - 30
         plot.x_range.end = min_doy + 30
+        set_zoom_yrange(padding=0.5)
 
     elif new_zoom.item == 'max_extent':
         # The day of year with the maximum value depends on which hemisphere is considered. Choose 15th of March
@@ -300,6 +304,15 @@ def update_zoom(new_zoom):
         doy_max = (61 if area_selector.value == "NH" else 259)
         plot.x_range.start = doy_max - 30
         plot.x_range.end = doy_max + 30
+        set_zoom_yrange(padding=0.5)
+
+
+def set_zoom_yrange(padding):
+    # Set the y-range between the minimum and maximum values plus a little padding.
+    data_start_index = plot.x_range.start - 1
+    data_end_index = plot.x_range.end - 1
+    plot.y_range.start = min(cds_minimum.data["minimum"][data_start_index:data_end_index]) - padding
+    plot.y_range.end = max(cds_maximum.data["maximum"][data_start_index:data_end_index]) + padding
 
 
 def update_line_colour(attr, old, new):

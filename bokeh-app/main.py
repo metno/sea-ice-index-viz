@@ -14,7 +14,13 @@ area_selector = Select(title="Area:", value="NH",
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",
                                    value="1981-2010",
-                                   options=["1981-2010", "1991-2020"])
+                                   options=[("1981-2010", "1981-2010"),
+                                            ("1991-2020", "1991-2020"),
+                                            ("1980-1989", "1980s"),
+                                            ("1990-1999", "1990s"),
+                                            ("2000-2009", "2000s"),
+                                            ("2010-2019", "2010s"),
+                                            ("2020-2029", "2020s")])
 
 # Make a dropdown list with preselected zoom levels.
 zoom_shortcuts_menu = [("Year", "year"),

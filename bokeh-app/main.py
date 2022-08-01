@@ -246,10 +246,6 @@ column1.sizing_mode = "stretch_both"
 
 
 def update_data(attr, old, new):
-    # Reset the x-range in case the plot has been zoomed in.
-    plot.x_range.start = 1
-    plot.x_range.end = 366
-
     # Update plot with new values from selectors.
     index = index_selector.value
     area = area_selector.value
@@ -282,7 +278,13 @@ def update_data(attr, old, new):
     plot.title.text = extracted_data["title"]
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
+    # Reset the x-range in case the plot has been zoomed in.
+    plot.x_range.start = 1
+    plot.x_range.end = 366
+
+    # Reset y-range. Make sure that upper limit is recalculated to nicely fit the new data.
     # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
+    plot.y_range.start = 0
     plot.y_range.end = tk.find_nice_ylimit(da)
     plot.y_range.reset_end = plot.y_range.end
 

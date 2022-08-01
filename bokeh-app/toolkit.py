@@ -78,9 +78,12 @@ def calculate_min_max(da):
     return {"cds_minimum": cds_minimum, "cds_maximum": cds_maximum}
 
 
-def calculate_individual_years(da):
+def calculate_individual_years(da, da_interpolated):
     da_converted = da.convert_calendar("all_leap")
     years = get_list_of_years(da_converted)
+
+    # Calculate the rank of the index value for each day.
+    rank = da_interpolated.groupby("time.dayofyear").map(lambda x: x.rank("time"))
 
     cds_dict = {year: None for year in years}
     for year in years:
@@ -88,7 +91,11 @@ def calculate_individual_years(da):
         date = one_year_data.time.dt.strftime("%Y-%m-%d").values
         day_of_year = one_year_data.time.dt.dayofyear.values
         index_values = one_year_data.values
-        cds_dict[year] = ColumnDataSource({"date": date, "day_of_year": day_of_year, "index_values": index_values})
+        rank_values = rank.sel(time=one_year_data.time.values).values
+        cds_dict[year] = ColumnDataSource({"day_of_year": day_of_year,
+                                           "index_values": index_values,
+                                           "date": date,
+                                           "rank": rank_values})
 
     return cds_dict
 

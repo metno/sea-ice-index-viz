@@ -62,7 +62,7 @@ cds_individual_years = tk.calculate_individual_years(da, da_converted)
 
 
 # Plot the figure and make sure that it uses all available space.
-plot = figure(title=extracted_data["title"])
+plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
 plot.sizing_mode = "stretch_both"
 
 # Create an empty list to store labels and glyphs for plotting legends.
@@ -189,6 +189,7 @@ plot.xaxis.axis_label = "Date"
 # Find a nice upper y-limit divisible by two.
 upper_y_lim = tk.find_nice_ylimit(da)
 plot.y_range = Range1d(start=0, end=upper_y_lim)
+plot.y_range.reset_end = upper_y_lim
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 

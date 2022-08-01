@@ -102,8 +102,6 @@ minimum = plot.line(x="day_of_year",
 
 legend_list.append(("Minimum", [minimum]))
 
-plot.add_tools(HoverTool(renderers=[minimum], tooltips=[('Day of year', '$data_x'), ('Minimum value', '$data_y')]))
-
 maximum = plot.line(x="day_of_year",
                     y="maximum",
                     source=cds_maximum,
@@ -113,8 +111,6 @@ maximum = plot.line(x="day_of_year",
                     line_dash="dashed")
 
 legend_list.append(("Maximum", [maximum]))
-
-plot.add_tools(HoverTool(renderers=[maximum], tooltips=[('Day of year', '$data_x'), ('Maximum value', '$data_y')]))
 
 
 # Plot the individual years.

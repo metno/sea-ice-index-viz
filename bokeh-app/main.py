@@ -58,7 +58,7 @@ cds_minimum = min_max_dict["cds_minimum"]
 cds_maximum = min_max_dict["cds_maximum"]
 
 # Calculate index of individual years.
-cds_individual_years = tk.calculate_individual_years(da)
+cds_individual_years = tk.calculate_individual_years(da, da_converted)
 
 
 # Plot the figure and make sure that it uses all available space.
@@ -149,10 +149,26 @@ for sublist in legend_split:
 plot.legend.click_policy = "hide"
 
 # Add a hovertool to display the year, day of year, and index value of the individual years.
+TOOLTIPS = """
+    <div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Date:</span>
+            <span style="font-size: 12px;">@date</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Index:</span>
+            <span style="font-size: 12px;">@index_values</span>
+            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Rank:</span>
+            <span style="font-size: 12px;">@rank</span>
+        </div>
+    </div>
+"""
+
 plot.add_tools(HoverTool(renderers=individual_years_glyphs,
-                         tooltips=[("Date", "@date"),
-                                   ('Day of year', '@day_of_year'),
-                                   ('Index value', '@index_values')]))
+                         tooltips=TOOLTIPS))
 
 # Hardcode the x-ticks (day_of_year, date).
 plot.x_range = Range1d(start=1, end=366)
@@ -260,7 +276,7 @@ def update_data(attr, old, new):
     cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
     # Calculate new columndatasources for the individual years.
-    new_cds_individual_years = tk.calculate_individual_years(da)
+    new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
     # Update the existing columndatasources with the new data.
     for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
         old_cds.data.update(new_cds.data)

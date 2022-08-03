@@ -1,7 +1,7 @@
 import xarray as xr
 from bokeh.plotting import figure
 from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS,\
-    Button, Paragraph
+    Button
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
 import numpy as np
@@ -353,18 +353,16 @@ for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--){
 
 button_last_two_years.js_on_click(cb5)
 
+
 # Layout
 inputs = column(index_selector, area_selector, reference_period_selector, button_clear_plot, button_show_everything,
                 button_individual_years, button_last_five_years, button_last_two_years)
 row1 = row(plot, inputs)
-
-# Create a label to signify that the tool is WIP.
-text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
-column1 = column(text, row1)
-column1.sizing_mode = "stretch_both"
+tab_managed = Panel(child=row1)
+layout = Tabs(tabs=[tab_managed])
 
 index_selector.on_change('value', update_plot)
 area_selector.on_change('value', update_plot)
 reference_period_selector.on_change('value', update_plot)
 
-curdoc().add_root(column1)
+curdoc().add_root(layout)

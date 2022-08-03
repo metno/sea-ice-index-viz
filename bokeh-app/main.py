@@ -1,195 +1,68 @@
-import xarray as xr
 from bokeh.plotting import figure
-from bokeh.models import Panel, Tabs, ColumnDataSource, AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS,\
-    Button
+from bokeh.models import AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS, Paragraph, Dropdown
 from bokeh.layouts import column, row
 from bokeh.io import curdoc
-import numpy as np
-import cmcrameri.cm as cm
-import matplotlib
-
-
-def download_dataset(index, area):
-    sie_dict = {"Northern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh"
-                                       "/osisaf_nh_sie_daily.nc",
-                "Southern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh"
-                                       "/osisaf_sh_sie_daily.nc"}
-    sia_dict = {"Northern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh"
-                                       "/osisaf_nh_sia_daily.nc",
-                "Southern Hemisphere": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh"
-                                       "/osisaf_sh_sia_daily.nc"}
-    url_dict = {"Sea Ice Extent": sie_dict, "Sea Ice Area": sia_dict}
-
-    return xr.open_dataset(url_dict[index][area])
-
-
-def extract_data(ds, index):
-    index_translation = {"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}
-    da = ds[index_translation[index]]
-    title = ds.title
-    long_name = da.attrs["long_name"]
-    units = da.attrs["units"]
-
-    return {"da": da, "title": title, "long_name": long_name, "units": units}
-
-
-def get_list_of_years(da):
-    return np.unique(da.time.dt.year.values).astype(str)
-
-
-def convert_and_interpolate_calendar(da):
-    # Convert the calendar to leap years for all years in the data, and fill the missing day with -999 as value.
-    da = da.convert_calendar("all_leap", missing=-999)
-
-    # Replace the -999 values with interpolated values between the preceding and succeeding day.
-    for i, val in enumerate(da.values):
-        if val == -999:
-            da.values[i] = (da.values[i-1] + da.values[i+1]) / 2
-
-    return da
-
-
-def calculate_percentiles_and_median(da):
-    percentile_10 = da.groupby("time.dayofyear").quantile(0.10).values
-    percentile_90 = da.groupby("time.dayofyear").quantile(0.90).values
-    percentile_25 = da.groupby("time.dayofyear").quantile(0.25).values
-    percentile_75 = da.groupby("time.dayofyear").quantile(0.75).values
-    median_array = da.groupby("time.dayofyear").median()
-    day_of_year = median_array.dayofyear.values
-    median = median_array.values
-
-    cds_percentile_1090 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_10": percentile_10,
-                                            "percentile_90": percentile_90})
-    cds_percentile_2575 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_25": percentile_25,
-                                            "percentile_75": percentile_75})
-    cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median})
-
-    return {"cds_percentile_1090": cds_percentile_1090,
-            "cds_percentile_2575": cds_percentile_2575,
-            "cds_median": cds_median}
-
-
-def calculate_min_max(da):
-    # Min/max values are calculated based on the data in the entire period except for the current year.
-    first_year = da.time.dt.year[0].values
-    second_to_last_year = da.time.dt.year[-2].values
-    sliced_da = da.sel(time=slice(str(first_year), str(second_to_last_year)))
-
-    minimum = sliced_da.groupby("time.dayofyear").min().values
-    maximum_array = sliced_da.groupby("time.dayofyear").max()
-    day_of_year = maximum_array.dayofyear.values
-    maximum = maximum_array.values
-
-    cds_minimum = ColumnDataSource({"day_of_year": day_of_year, "minimum": minimum})
-    cds_maximum = ColumnDataSource({"day_of_year": day_of_year, "maximum": maximum})
-
-    return {"cds_minimum": cds_minimum, "cds_maximum": cds_maximum}
-
-
-def calculate_individual_years(da):
-    da_converted = da.convert_calendar("all_leap")
-    years = get_list_of_years(da_converted)
-
-    cds_dict = {year: None for year in years}
-    for year in years:
-        one_year_data = da_converted.sel(time=year)
-        date = one_year_data.time.dt.strftime("%Y-%m-%d").values
-        day_of_year = one_year_data.time.dt.dayofyear.values
-        index_values = one_year_data.values
-        cds_dict[year] = ColumnDataSource({"date": date, "day_of_year": day_of_year, "index_values": index_values})
-
-    return cds_dict
-
-
-def find_nice_ylimit(da):
-    """Find a nice y-limit that's divisible by two."""
-    return int(2 * round(da.max().values / 2) + 2)
-
-
-def find_line_colours(years):
-    """Find a colors for the individual years."""
-    normalised = np.linspace(0, 1, len(years))
-    colours = cm.batlowS(normalised)
-    colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
-    colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
-
-    return colour_dict
-
-
-def update_plot(attr, old, new):
-    # Update plot with new values from selectors.
-    index = index_selector.value
-    area = area_selector.value
-    reference_period = reference_period_selector.value
-
-    ds = download_dataset(index, area)
-    extracted_data = extract_data(ds, index)
-    da = extracted_data["da"]
-
-    da_converted = convert_and_interpolate_calendar(da)
-
-    start_year = reference_period[:4]
-    end_year = reference_period[5:]
-    percentiles_and_median_dict = calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
-    cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
-    cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
-    cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
-
-    min_max_dict = calculate_min_max(da_converted)
-    cds_minimum.data.update(min_max_dict["cds_minimum"].data)
-    cds_maximum.data.update(min_max_dict["cds_maximum"].data)
-
-    # Calculate new columndatasources for the individual years.
-    new_cds_individual_years = calculate_individual_years(da)
-    # Update the existing columndatasources with the new data.
-    for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
-        old_cds.data.update(new_cds.data)
-
-    # Set plot attributes.
-    plot.title.text = extracted_data["title"]
-    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
-
-    # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
-    plot.y_range.end = find_nice_ylimit(da)
-    plot.y_range.reset_end = find_nice_ylimit(da)
+import toolkit as tk
 
 
 # Add dropdown menus for index and area selection.
-index_selector = Select(title="Index:", value="Sea Ice Extent", options=["Sea Ice Extent", "Sea Ice Area"])
-area_selector = Select(title="Area:", value="Northern Hemisphere",
-                       options=["Northern Hemisphere", "Southern Hemisphere"])
+index_selector = Select(title="Index:", value="sie",
+                        options=[("sie", "Sea Ice Extent"), ("sia", "Sea Ice Area")])
+area_selector = Select(title="Area:", value="NH",
+                       options=[("NH", "Northern Hemisphere"), ("SH", "Southern Hemisphere")])
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",
                                    value="1981-2010",
-                                   options=["1981-2010", "1991-2020"])
+                                   options=[("1981-2010", "1981-2010"),
+                                            ("1991-2020", "1991-2020"),
+                                            ("1980-1989", "1980s"),
+                                            ("1990-1999", "1990s"),
+                                            ("2000-2009", "2000s"),
+                                            ("2010-2019", "2010s"),
+                                            ("2020-2029", "2020s")])
+
+# Make a dropdown list with preselected zoom levels.
+zoom_shortcuts_menu = [("Year", "year"),
+                       ("Two months centered on latest observation", "zoom"),
+                       ("Min extent", "min_extent"),
+                       ("Max extent", "max_extent")]
+
+zoom_shortcuts = Dropdown(label="Zoom shortcuts", menu=zoom_shortcuts_menu)
+
+# Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
+color_scale_selector = Select(title="Color scale of yearly data:",
+                              value="decadal",
+                              options=[("decadal", "By decade"),
+                                       ("viridis", "viridis (CVD friendly)"),
+                                       ("plasma", "plasma (CVD friendly)"),
+                                       ("batlow", "batlow (CVD friendly)"),
+                                       ("batlowS", "batlowS (CVD friendly)")])
 
 # Download the data for the default index and area values.
-ds = download_dataset(index_selector.value, area_selector.value)
-extracted_data = extract_data(ds, index_selector.value)
+ds = tk.download_dataset(index_selector.value, area_selector.value)
+extracted_data = tk.extract_data(ds, index_selector.value)
 da = extracted_data["da"]
 
 # Calculate the percentiles and median, and the minimum and maximum value. We have to convert the dataset to use an
 # all leap calendar and interpolate to fill in for the missing February 29th values.
-da_converted = convert_and_interpolate_calendar(da)
+da_converted = tk.convert_and_interpolate_calendar(da)
 
-percentiles_and_median_dict = calculate_percentiles_and_median(da_converted)
+percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted)
 cds_percentile_1090 = percentiles_and_median_dict["cds_percentile_1090"]
 cds_percentile_2575 = percentiles_and_median_dict["cds_percentile_2575"]
 cds_median = percentiles_and_median_dict["cds_median"]
 
-min_max_dict = calculate_min_max(da_converted)
+min_max_dict = tk.calculate_min_max(da_converted)
 cds_minimum = min_max_dict["cds_minimum"]
 cds_maximum = min_max_dict["cds_maximum"]
 
 # Calculate index of individual years.
-cds_individual_years = calculate_individual_years(da)
+cds_individual_years = tk.calculate_individual_years(da, da_converted)
 
 
-# Plot the figure and make sure that it uses all of the available space.
-plot = figure(title=extracted_data["title"])
+# Plot the figure and make sure that it uses all available space.
+plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
 plot.sizing_mode = "stretch_both"
 
 # Create an empty list to store labels and glyphs for plotting legends.
@@ -229,8 +102,6 @@ minimum = plot.line(x="day_of_year",
 
 legend_list.append(("Minimum", [minimum]))
 
-plot.add_tools(HoverTool(renderers=[minimum], tooltips=[('Day of year', '$data_x'), ('Minimum value', '$data_y')]))
-
 maximum = plot.line(x="day_of_year",
                     y="maximum",
                     source=cds_maximum,
@@ -241,11 +112,9 @@ maximum = plot.line(x="day_of_year",
 
 legend_list.append(("Maximum", [maximum]))
 
-plot.add_tools(HoverTool(renderers=[maximum], tooltips=[('Day of year', '$data_x'), ('Maximum value', '$data_y')]))
-
 
 # Plot the individual years.
-colours_dict = find_line_colours(cds_individual_years.keys())
+colours_dict = tk.find_line_colours(cds_individual_years.keys(), color_scale_selector.value)
 individual_years_glyphs = []
 for year, cds_individual_year in cds_individual_years.items():
     line_glyph = plot.line(x="day_of_year",
@@ -256,7 +125,14 @@ for year, cds_individual_year in cds_individual_years.items():
     legend_list.append((year, [line_glyph]))
     individual_years_glyphs.append(line_glyph)
 
-# Maximum number of elements in a sublist.
+# Make sure the current year has a thicker line than the other years.
+line_glyph.glyph.line_width = 3
+
+# To plot legends for the individual years we need to split the list of legends into several sublists. If we don't do
+# this the list will be so long that it's out of frame. The number below is the maximum number of elements that can
+# be inside one sublist. This number was determined with basic testing on one specific computer. This is an issue
+# because other clients can have computers with a different screen resolution which can fit more legends. Keep this
+# solution for now, but check if there's a better way to solve this.
 n = 23
 legend_split = [legend_list[i:i+n] for i in range(0, len(legend_list), n)]
 
@@ -265,14 +141,32 @@ for sublist in legend_split:
     legend.spacing = 1
     plot.add_layout(legend, "right")
 
+# Make the clicking the legend hide/show the given element.
 plot.legend.click_policy = "hide"
 
 # Add a hovertool to display the year, day of year, and index value of the individual years.
-plot.add_tools(HoverTool(renderers=individual_years_glyphs,
-                         tooltips=[("Date", "@date"),
-                                   ('Day of year', '@day_of_year'),
-                                   ('Index value', '@index_values')]))
+TOOLTIPS = """
+    <div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Date:</span>
+            <span style="font-size: 12px;">@date</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Index:</span>
+            <span style="font-size: 12px;">@index_values</span>
+            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Rank:</span>
+            <span style="font-size: 12px;">@rank</span>
+        </div>
+    </div>
+"""
 
+plot.add_tools(HoverTool(renderers=individual_years_glyphs,
+                         tooltips=TOOLTIPS))
+
+# Hardcode the x-ticks (day_of_year, date).
 plot.x_range = Range1d(start=1, end=366)
 x_ticks = {1: '1 Jan',
            32: '1 Feb',
@@ -292,77 +186,162 @@ plot.xaxis.ticker = list(x_ticks.keys())
 plot.xaxis.major_label_overrides = x_ticks
 plot.xaxis.axis_label = "Date"
 
-upper_y_lim = find_nice_ylimit(da)
+# Find a nice upper y-limit divisible by two.
+upper_y_lim = tk.find_nice_ylimit(da)
 plot.y_range = Range1d(start=0, end=upper_y_lim)
+plot.y_range.reset_end = upper_y_lim
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-# Add a button to remove everything from the canvas.
-button_clear_plot = Button(label='Clear plot')
-cb1 = CustomJS(args=dict(fig=plot, btn=button_clear_plot)
-               , code='''
-for (var i = 0; i < fig.renderers.length; i++){
-    fig.renderers[i].visible = false};
+# Create a dropdown button with plot shortcuts.
+menu = [("Erase all", "erase_all"),
+        ("Show all", "show_all"),
+        ("Last 5 years", "last_5_years"),
+        ("Last 2 years", "last_2_years")]
+
+plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
+
+# The plot shortcuts use the following javascript callback code.
+callback = CustomJS(args=dict(fig=plot), code='''
+if (this.item === "erase_all") {
+    for (var i = 0; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible = false};
+        
+} else if (this.item === "show_all") {
+    for (var i = 0; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible = true};
+
+} else if (this.item === "last_5_years") {
+    for (var i = 5; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible=false};
+
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 5); i--) {
+        fig.renderers[i-1].visible=true};
+
+} else if (this.item === "last_2_years") {
+    for (var i = 5; i < fig.renderers.length; i++) {
+        fig.renderers[i].visible=false};
+
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--) {
+        fig.renderers[i-1].visible=true};
+}
 ''')
 
-button_clear_plot.js_on_click(cb1)
-
-# Add a button to show everything.
-button_show_everything = Button(label='Show everything')
-cb2 = CustomJS(args=dict(fig=plot, btn=button_show_everything)
-               , code='''
-for (var i = 0; i < fig.renderers.length; i++){
-    fig.renderers[i].visible = true};
-''')
-
-button_show_everything.js_on_click(cb2)
-
-# Add a button to show all individual years.
-button_individual_years = Button(label='Show all years')
-cb3 = CustomJS(args=dict(fig=plot, btn=button_individual_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=true}
-''')
-
-button_individual_years.js_on_click(cb3)
-
-# Add a button to show the last 5 years.
-button_last_five_years = Button(label='Show last 5 years')
-cb4 = CustomJS(args=dict(fig=plot, btn=button_last_five_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=false};
-    
-for (var i = fig.renderers.length; i > (fig.renderers.length - 5); i--){
-    fig.renderers[i-1].visible=true};
-''')
-
-button_last_five_years.js_on_click(cb4)
-
-# Add a button to show the last 2 years.
-button_last_two_years = Button(label='Show last two years')
-cb5 = CustomJS(args=dict(fig=plot, btn=button_last_two_years)
-               , code='''
-for (var i = 5; i < fig.renderers.length; i++){
-    fig.renderers[i].visible=false};
-    
-for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--){
-    fig.renderers[i-1].visible=true};
-''')
-
-button_last_two_years.js_on_click(cb5)
-
+# Make sure that callback code runs when user clicks on one of the choices.
+plot_shortcuts.js_on_event("menu_item_click", callback)
 
 # Layout
-inputs = column(index_selector, area_selector, reference_period_selector, button_clear_plot, button_show_everything,
-                button_individual_years, button_last_five_years, button_last_two_years)
+inputs = column(index_selector,
+                area_selector,
+                reference_period_selector,
+                plot_shortcuts,
+                zoom_shortcuts,
+                color_scale_selector)
 row1 = row(plot, inputs)
-tab_managed = Panel(child=row1)
-layout = Tabs(tabs=[tab_managed])
 
-index_selector.on_change('value', update_plot)
-area_selector.on_change('value', update_plot)
-reference_period_selector.on_change('value', update_plot)
+# Create a label to signify that the tool is WIP.
+text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
+column1 = column(text, row1)
+column1.sizing_mode = "stretch_both"
 
-curdoc().add_root(layout)
+
+def update_data(attr, old, new):
+    # Update plot with new values from selectors.
+    index = index_selector.value
+    area = area_selector.value
+    reference_period = reference_period_selector.value
+
+    ds = tk.download_dataset(index, area)
+    extracted_data = tk.extract_data(ds, index)
+    da = extracted_data["da"]
+
+    da_converted = tk.convert_and_interpolate_calendar(da)
+
+    start_year = reference_period[:4]
+    end_year = reference_period[5:]
+    percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
+    cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
+    cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
+    cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+
+    min_max_dict = tk.calculate_min_max(da_converted)
+    cds_minimum.data.update(min_max_dict["cds_minimum"].data)
+    cds_maximum.data.update(min_max_dict["cds_maximum"].data)
+
+    # Calculate new columndatasources for the individual years.
+    new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
+    # Update the existing columndatasources with the new data.
+    for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
+        old_cds.data.update(new_cds.data)
+
+    # Set plot attributes.
+    plot.title.text = extracted_data["title"]
+    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+
+    # Reset the x-range in case the plot has been zoomed in.
+    plot.x_range.start = 1
+    plot.x_range.end = 366
+
+    # Reset y-range. Make sure that upper limit is recalculated to nicely fit the new data.
+    # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
+    plot.y_range.start = 0
+    plot.y_range.end = tk.find_nice_ylimit(da)
+    plot.y_range.reset_end = plot.y_range.end
+
+
+def update_zoom(new_zoom):
+    if new_zoom.item == 'year':
+        plot.x_range.start = 1
+        plot.x_range.end = 366
+        plot.y_range.start = 0
+        plot.y_range.end = plot.y_range.reset_end
+
+    elif new_zoom.item == 'zoom':
+        # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
+        # upper bound is not more than 31st of Dec.
+        x_range_start = line_glyph.data_source.data['day_of_year'][-1] - 30
+        x_range_end = line_glyph.data_source.data['day_of_year'][-1] + 30
+        plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
+        plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
+        set_zoom_yrange(padding=0.5)
+
+    elif new_zoom.item == 'min_extent':
+        # The day of year with the minimum value depends on which hemisphere is considered. Choose 15th of September
+        # for the NH and 15th of February for the SH.
+        min_doy = (259 if area_selector.value == "NH" else 46)
+        plot.x_range.start = min_doy - 30
+        plot.x_range.end = min_doy + 30
+        set_zoom_yrange(padding=0.5)
+
+    elif new_zoom.item == 'max_extent':
+        # The day of year with the maximum value depends on which hemisphere is considered. Choose 15th of March
+        # for the NH and 15th of September for the SH.
+        doy_max = (61 if area_selector.value == "NH" else 259)
+        plot.x_range.start = doy_max - 30
+        plot.x_range.end = doy_max + 30
+        set_zoom_yrange(padding=0.5)
+
+
+def set_zoom_yrange(padding):
+    # Set the y-range between the minimum and maximum values plus a little padding.
+    data_start_index = plot.x_range.start - 1
+    data_end_index = plot.x_range.end - 1
+    plot.y_range.start = min(cds_minimum.data["minimum"][data_start_index:data_end_index]) - padding
+    plot.y_range.end = max(cds_maximum.data["maximum"][data_start_index:data_end_index]) + padding
+
+
+def update_line_colour(attr, old, new):
+    colour = color_scale_selector.value
+    colours_dict = tk.find_line_colours(cds_individual_years.keys(), colour)
+
+    for year, individual_year_glyph in zip(cds_individual_years.keys(), individual_years_glyphs):
+        individual_year_glyph.glyph.line_color = colours_dict[year]
+
+
+index_selector.on_change('value', update_data)
+area_selector.on_change('value', update_data)
+reference_period_selector.on_change('value', update_data)
+zoom_shortcuts.on_click(update_zoom)
+color_scale_selector.on_change('value', update_line_colour)
+
+curdoc().add_root(column1)

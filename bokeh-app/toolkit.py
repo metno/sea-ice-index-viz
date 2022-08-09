@@ -131,8 +131,8 @@ def calculate_individual_years(da, da_interpolated):
 
 
 def find_nice_ylimit(da):
-    """Find a nice y-limit that's divisible by two."""
-    return int(2 * round(da.max().values / 2) + 2)
+    """Find an upper y-limit with 10 percent added to the maximum value of the data."""
+    return 1.10 * da.max().values
 
 
 def decade_colour_dict(decade, colour):

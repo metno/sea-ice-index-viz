@@ -6,10 +6,40 @@ import matplotlib
 
 
 def download_dataset(index, area):
-    sie_dict = {"NH": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
-                "SH": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc"}
-    sia_dict = {"NH": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc",
-                "SH": "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc"}
+    url_prefix = "https://thredds.met.no/thredds/dodsC"
+
+    sie_dict = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
+                "bar": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bar/osisaf_bar_sie_daily.nc",
+                "beau": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/beau/osisaf_beau_sie_daily.nc",
+                "chuk": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/chuk/osisaf_chuk_sie_daily.nc",
+                "ess": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ess/osisaf_ess_sie_daily.nc",
+                "fram": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/fram/osisaf_fram_sie_daily.nc",
+                "kara": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/kara/osisaf_kara_sie_daily.nc",
+                "lap": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/lap/osisaf_lap_sie_daily.nc",
+                "sval": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/sval/osisaf_sval_sie_daily.nc",
+                "SH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc",
+                "bell": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bell/osisaf_bell_sie_daily.nc",
+                "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sie_daily.nc",
+                "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sie_daily.nc",
+                "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sie_daily.nc",
+                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sie_daily.nc"}
+
+    sia_dict = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc",
+                "bar": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bar/osisaf_bar_sia_daily.nc",
+                "beau": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/beau/osisaf_beau_sia_daily.nc",
+                "chuk": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/chuk/osisaf_chuk_sia_daily.nc",
+                "ess": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ess/osisaf_ess_sia_daily.nc",
+                "fram": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/fram/osisaf_fram_sia_daily.nc",
+                "kara": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/kara/osisaf_kara_sia_daily.nc",
+                "lap": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/lap/osisaf_lap_sia_daily.nc",
+                "sval": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/sval/osisaf_sval_sia_daily.nc",
+                "SH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc",
+                "bell": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bell/osisaf_bell_sia_daily.nc",
+                "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sia_daily.nc",
+                "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sia_daily.nc",
+                "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sia_daily.nc",
+                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sia_daily.nc"}
+    
     url_dict = {"sie": sie_dict, "sia": sia_dict}
 
     return xr.open_dataset(url_dict[index][area])
@@ -101,8 +131,8 @@ def calculate_individual_years(da, da_interpolated):
 
 
 def find_nice_ylimit(da):
-    """Find a nice y-limit that's divisible by two."""
-    return int(2 * round(da.max().values / 2) + 2)
+    """Find an upper y-limit with 10 percent added to the maximum value of the data."""
+    return 1.10 * da.max().values
 
 
 def decade_colour_dict(decade, colour):

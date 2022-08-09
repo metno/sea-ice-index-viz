@@ -207,6 +207,10 @@ plot.y_range.reset_end = upper_y_lim
 plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
+# Find the day of year with the minimum and maximum values.
+doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+
 # Add a bottom label with information about the data that's used to make the graphic.
 citation_text = 'v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI' + '\n'\
                 + 'Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)'
@@ -283,6 +287,7 @@ def update_data(attr, old, new):
     extracted_data = tk.extract_data(ds, index)
     da = extracted_data["da"]
 
+    global da_converted
     da_converted = tk.convert_and_interpolate_calendar(da)
 
     start_year = reference_period[:4]
@@ -316,6 +321,12 @@ def update_data(attr, old, new):
     plot.y_range.end = tk.find_nice_ylimit(da)
     plot.y_range.reset_end = plot.y_range.end
 
+    # Find the day of year for the average minimum and maximum values.
+    global doy_minimum
+    doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+    global doy_maximum
+    doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+
 
 def update_zoom(new_zoom):
     if new_zoom.item == 'year':
@@ -334,30 +345,33 @@ def update_zoom(new_zoom):
         set_zoom_yrange(padding_frac=0.05)
 
     elif new_zoom.item == 'min_extent':
-        # The day of year with the minimum value depends on which hemisphere is considered. Choose 15th of September
-        # for the NH and 15th of February for the SH.
-        min_doy = (259 if area_selector.value == "NH" else 46)
-        plot.x_range.start = min_doy - 30
-        plot.x_range.end = min_doy + 30
+        # Plot two months around the day of year with the lowest average minimum value. Make sure that the lower bound
+        # is not less 1st of Jan and upper bound is not more than 31st of Dec.
+        plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
+        plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
         set_zoom_yrange(padding_frac=0.05)
 
     elif new_zoom.item == 'max_extent':
-        # The day of year with the maximum value depends on which hemisphere is considered. Choose 15th of March
-        # for the NH and 15th of September for the SH.
-        doy_max = (61 if area_selector.value == "NH" else 259)
-        plot.x_range.start = doy_max - 30
-        plot.x_range.end = doy_max + 30
+        # Plot two months around the day of year with the highest average maximum value. Make sure that the lower bound
+        # is not less 1st of Jan and upper bound is not more than 31st of Dec.
+        plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
+        plot.x_range.end = (doy_maximum + 30 if doy_maximum + 30 < 366 else 366)
         set_zoom_yrange(padding_frac=0.05)
 
 
 def set_zoom_yrange(padding_frac):
     # Set the y-range between the minimum and maximum values plus a little padding.
-    data_start_index = plot.x_range.start - 1
-    data_end_index = plot.x_range.end - 1
+    doy_start = plot.x_range.start - 1
+    doy_end = plot.x_range.end - 1
 
-    data_minimum = min(cds_minimum.data["minimum"][data_start_index:data_end_index])
-    data_maximum = max(cds_maximum.data["maximum"][data_start_index:data_end_index])
-    padding = data_maximum * padding_frac
+    data_minimum = da_converted.groupby("time.dayofyear").min().sel(dayofyear=slice(doy_start, doy_end)).min().values
+    data_maximum = da_converted.groupby("time.dayofyear").max().sel(dayofyear=slice(doy_start, doy_end)).max().values
+
+    # Sometimes the minimum and maximum values are the same. Account for this to always have some padding.
+    if data_maximum - data_minimum < 1E-3:
+        padding = data_maximum * padding_frac
+    else:
+        padding = (data_maximum - data_minimum) * padding_frac
 
     plot.y_range.start = (data_minimum - padding if data_minimum - padding > 0 else 0)
     plot.y_range.end = data_maximum + padding

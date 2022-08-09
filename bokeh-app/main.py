@@ -331,7 +331,7 @@ def update_zoom(new_zoom):
         x_range_end = line_glyph.data_source.data['day_of_year'][-1] + 30
         plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
         plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
-        set_zoom_yrange(padding=0.5)
+        set_zoom_yrange(padding_frac=0.05)
 
     elif new_zoom.item == 'min_extent':
         # The day of year with the minimum value depends on which hemisphere is considered. Choose 15th of September
@@ -339,7 +339,7 @@ def update_zoom(new_zoom):
         min_doy = (259 if area_selector.value == "NH" else 46)
         plot.x_range.start = min_doy - 30
         plot.x_range.end = min_doy + 30
-        set_zoom_yrange(padding=0.5)
+        set_zoom_yrange(padding_frac=0.05)
 
     elif new_zoom.item == 'max_extent':
         # The day of year with the maximum value depends on which hemisphere is considered. Choose 15th of March
@@ -347,15 +347,20 @@ def update_zoom(new_zoom):
         doy_max = (61 if area_selector.value == "NH" else 259)
         plot.x_range.start = doy_max - 30
         plot.x_range.end = doy_max + 30
-        set_zoom_yrange(padding=0.5)
+        set_zoom_yrange(padding_frac=0.05)
 
 
-def set_zoom_yrange(padding):
+def set_zoom_yrange(padding_frac):
     # Set the y-range between the minimum and maximum values plus a little padding.
     data_start_index = plot.x_range.start - 1
     data_end_index = plot.x_range.end - 1
-    plot.y_range.start = min(cds_minimum.data["minimum"][data_start_index:data_end_index]) - padding
-    plot.y_range.end = max(cds_maximum.data["maximum"][data_start_index:data_end_index]) + padding
+
+    data_minimum = min(cds_minimum.data["minimum"][data_start_index:data_end_index])
+    data_maximum = max(cds_maximum.data["maximum"][data_start_index:data_end_index])
+    padding = data_maximum * padding_frac
+
+    plot.y_range.start = (data_minimum - padding if data_minimum - padding > 0 else 0)
+    plot.y_range.end = data_maximum + padding
 
 
 def update_line_colour(attr, old, new):

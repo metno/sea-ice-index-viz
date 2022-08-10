@@ -36,13 +36,13 @@ reference_period_selector = Select(title="Reference period of percentiles and me
                                             ("2010-2019", "2010s"),
                                             ("2020-2029", "2020s")])
 
-# Make a dropdown list with preselected zoom levels.
-zoom_shortcuts_menu = [("Year", "year"),
-                       ("Two months centered on latest observation", "zoom"),
-                       ("Min extent", "min_extent"),
-                       ("Max extent", "max_extent")]
-
-zoom_shortcuts = Dropdown(label="Zoom shortcuts", menu=zoom_shortcuts_menu)
+# Add a dropdown menu for different preselected zoom levels.
+zoom_shortcuts = Select(title="Zoom shortcuts:",
+                        value="year",
+                        options=[("year", "Year"),
+                                 ("zoom", "Two months centred on latest observation"),
+                                 ("min_extent", "Min extent"),
+                                 ("max_extent", "Max extent")])
 
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
 color_scale_selector = Select(title="Color scale of yearly data:",
@@ -311,16 +311,6 @@ def update_data(attr, old, new):
     plot.title.text = extracted_data["title"]
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-    # Reset the x-range in case the plot has been zoomed in.
-    plot.x_range.start = 1
-    plot.x_range.end = 366
-
-    # Reset y-range. Make sure that upper limit is recalculated to nicely fit the new data.
-    # Find new "nice" upper y-limit, and make sure that the reset upper y-limit is set to the same value.
-    plot.y_range.start = 0
-    plot.y_range.end = tk.find_nice_ylimit(da)
-    plot.y_range.reset_end = plot.y_range.end
-
     # Find the day of year for the average minimum and maximum values.
     global doy_minimum
     doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
@@ -328,14 +318,14 @@ def update_data(attr, old, new):
     doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
 
-def update_zoom(new_zoom):
-    if new_zoom.item == 'year':
+def update_zoom(attr, old, new):
+    if zoom_shortcuts.value == 'year':
         plot.x_range.start = 1
         plot.x_range.end = 366
         plot.y_range.start = 0
-        plot.y_range.end = plot.y_range.reset_end
+        plot.y_range.end = tk.find_nice_ylimit(da_converted)
 
-    elif new_zoom.item == 'zoom':
+    elif zoom_shortcuts.value == 'zoom':
         # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
         # upper bound is not more than 31st of Dec.
         x_range_start = line_glyph.data_source.data['day_of_year'][-1] - 30
@@ -344,14 +334,14 @@ def update_zoom(new_zoom):
         plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
         set_zoom_yrange(padding_frac=0.05)
 
-    elif new_zoom.item == 'min_extent':
+    elif zoom_shortcuts.value == 'min_extent':
         # Plot two months around the day of year with the lowest average minimum value. Make sure that the lower bound
         # is not less 1st of Jan and upper bound is not more than 31st of Dec.
         plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
         plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
         set_zoom_yrange(padding_frac=0.05)
 
-    elif new_zoom.item == 'max_extent':
+    elif zoom_shortcuts.value == 'max_extent':
         # Plot two months around the day of year with the highest average maximum value. Make sure that the lower bound
         # is not less 1st of Jan and upper bound is not more than 31st of Dec.
         plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
@@ -388,7 +378,12 @@ def update_line_colour(attr, old, new):
 index_selector.on_change('value', update_data)
 area_selector.on_change('value', update_data)
 reference_period_selector.on_change('value', update_data)
-zoom_shortcuts.on_click(update_zoom)
+
+# The zoom level doesn't only depend on the current selection in the zoom shortcut, but also on the index and area.
+zoom_shortcuts.on_change('value', update_zoom)
+index_selector.on_change('value', update_zoom)
+area_selector.on_change('value', update_zoom)
+
 color_scale_selector.on_change('value', update_line_colour)
 
 curdoc().add_root(column1)

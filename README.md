@@ -56,7 +56,7 @@ The bokeh-server application will be availavble at:
 
 ```http://0.0.0.0:7000/SIE```
 
-### Deployment to MET's server
+### Deployment to MET's Bokeh server
 
 * Merge main to branch `prototype`
 * Ask Massimo to update the bokeh server (https://bokeh.metsis-api.met.no/SeaIce)

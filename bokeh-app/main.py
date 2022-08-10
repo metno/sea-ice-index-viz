@@ -212,8 +212,23 @@ doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.asty
 doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
 # Add a bottom label with information about the data that's used to make the graphic.
-citation_text = 'v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI' + '\n'\
-                + 'Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)'
+years = tk.get_list_of_years(da)
+first_year = years[0]
+second_to_last_year = years[-2]
+
+
+def label_text(reference_period, first_year, second_to_last_year):
+    """Produces a string with climatology and data info."""
+
+    label_text = f"Median and percentiles calculated for {reference_period}," \
+                 f" and min/max for {first_year}-{second_to_last_year}\n" \
+                 "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"
+
+    return label_text
+
+
+citation_text = label_text(reference_period_selector.value, first_year, second_to_last_year)
 
 citation = Label(x=5,
                  y=5,
@@ -316,6 +331,8 @@ def update_data(attr, old, new):
     doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
     global doy_maximum
     doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+
+    citation.text = label_text(reference_period, first_year, second_to_last_year)
 
 
 def update_zoom(attr, old, new):

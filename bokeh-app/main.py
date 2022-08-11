@@ -48,9 +48,9 @@ zoom_shortcuts = Select(title="Zoom shortcuts:",
 color_scale_selector = Select(title="Color scale of yearly data:",
                               value="decadal",
                               options=[("decadal", "By decade"),
-                                       ("viridis", "viridis (CVD friendly)"),
-                                       ("plasma", "plasma (CVD friendly)"),
-                                       ("batlow", "batlow (CVD friendly)"),
+                                       ("viridis", "viridis"),
+                                       ("plasma", "plasma"),
+                                       ("batlow", "batlow"),
                                        ("batlowS", "batlowS (CVD friendly)")])
 
 # Download the data for the default index and area values.

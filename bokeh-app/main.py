@@ -220,8 +220,8 @@ second_to_last_year = years[-2]
 def label_text(reference_period, first_year, second_to_last_year):
     """Produces a string with climatology and data info."""
 
-    label_text = f"Median and percentiles calculated for {reference_period}," \
-                 f" and min/max for {first_year}-{second_to_last_year}\n" \
+    label_text = f"Median and percentiles for {reference_period}, " \
+                 f"min/max for {first_year}-{second_to_last_year}\n" \
                  "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                  "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"
 

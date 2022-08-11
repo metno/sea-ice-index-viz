@@ -176,7 +176,7 @@ def find_line_colours(years, colour):
         colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
         colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
 
-        if colour == ("viridis" or "plasma" or "batlow"):
+        if colour in ("viridis", "plasma", "batlow"):
             # Set the color of the current year to black.
             colour_dict[list(years)[-1]] = "#000000"
 

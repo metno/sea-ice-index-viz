@@ -62,7 +62,11 @@ da = extracted_data["da"]
 # all leap calendar and interpolate to fill in for the missing February 29th values.
 da_converted = tk.convert_and_interpolate_calendar(da)
 
-percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted)
+reference_period = reference_period_selector.value
+start_year = reference_period[:4]
+end_year = reference_period[5:]
+
+percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
 cds_percentile_1090 = percentiles_and_median_dict["cds_percentile_1090"]
 cds_percentile_2575 = percentiles_and_median_dict["cds_percentile_2575"]
 cds_median = percentiles_and_median_dict["cds_median"]

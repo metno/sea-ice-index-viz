@@ -94,8 +94,6 @@ percentile_1090 = plot.varea(x="day_of_year",
                              fill_alpha=0.6,
                              fill_color="darkgray")
 
-legend_list.append(("10th-90th %", [percentile_1090]))
-
 percentile_2575 = plot.varea(x="day_of_year",
                              y1="percentile_25",
                              y2="percentile_75",
@@ -103,11 +101,10 @@ percentile_2575 = plot.varea(x="day_of_year",
                              fill_alpha=0.6,
                              fill_color="gray")
 
-legend_list.append(("25th-75th %", [percentile_2575]))
-
 # Plot the median.
 median = plot.line(x="day_of_year", y="median", source=cds_median, line_width=2, color="dimgray", alpha=0.6)
-legend_list.append(("Median", [median]))
+
+legend_list.append(("Climatology", [percentile_1090, percentile_2575, median]))
 
 # Plot the minimum and maximum values.
 minimum = plot.line(x="day_of_year",
@@ -118,8 +115,6 @@ minimum = plot.line(x="day_of_year",
                     line_width=2,
                     line_dash="dashed")
 
-legend_list.append(("Minimum", [minimum]))
-
 maximum = plot.line(x="day_of_year",
                     y="maximum",
                     source=cds_maximum,
@@ -128,7 +123,7 @@ maximum = plot.line(x="day_of_year",
                     line_width=2,
                     line_dash="dashed")
 
-legend_list.append(("Maximum", [maximum]))
+legend_list.append(("Min/Max", [minimum, maximum]))
 
 
 # Plot the individual years.

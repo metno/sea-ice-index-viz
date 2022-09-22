@@ -42,7 +42,7 @@ def download_dataset(index, area):
     
     url_dict = {"sie": sie_dict, "sia": sia_dict}
 
-    return xr.open_dataset(url_dict[index][area])
+    return xr.open_dataset(url_dict[index][area], cache=False)
 
 
 def extract_data(ds, index):

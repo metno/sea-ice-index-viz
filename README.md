@@ -59,4 +59,4 @@ The bokeh-server application will be availavble at:
 ### Deployment to MET's Bokeh server
 
 * Merge main to branch `prototype`
-* Ask Massimo to update the bokeh server (https://bokeh.metsis-api.met.no/SeaIce)
+* Ask Massimo to update the bokeh server (https://seaice.metsis-api.met.no/SIE)

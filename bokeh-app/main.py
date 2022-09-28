@@ -1,9 +1,11 @@
+import panel as pn
 from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS, Paragraph, Dropdown, Label
 from bokeh.layouts import column, row
-from bokeh.io import curdoc
 import toolkit as tk
 
+# Specify a loading spinner wheel to display when data is being loaded.
+pn.extension(loading_spinner='dots', loading_color='#00aa41', sizing_mode="stretch_width")
 
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="sie",
@@ -309,77 +311,79 @@ column1.sizing_mode = "stretch_both"
 
 
 def update_data(attr, old, new):
-    # Update plot with new values from selectors.
-    index = index_selector.value
-    area = area_selector.value
-    reference_period = reference_period_selector.value
+    with pn.param.set_values(bokeh_pane, loading=True):
+        # Update plot with new values from selectors.
+        index = index_selector.value
+        area = area_selector.value
+        reference_period = reference_period_selector.value
 
-    ds = tk.download_dataset(index, area)
-    extracted_data = tk.extract_data(ds, index)
-    da = extracted_data["da"]
+        ds = tk.download_dataset(index, area)
+        extracted_data = tk.extract_data(ds, index)
+        da = extracted_data["da"]
 
-    global da_converted
-    da_converted = tk.convert_and_interpolate_calendar(da)
+        global da_converted
+        da_converted = tk.convert_and_interpolate_calendar(da)
 
-    start_year = reference_period[:4]
-    end_year = reference_period[5:]
-    percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
-    cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
-    cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
-    cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+        start_year = reference_period[:4]
+        end_year = reference_period[5:]
+        percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year, end_year)))
+        cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
+        cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
+        cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
 
-    min_max_dict = tk.calculate_min_max(da_converted)
-    cds_minimum.data.update(min_max_dict["cds_minimum"].data)
-    cds_maximum.data.update(min_max_dict["cds_maximum"].data)
+        min_max_dict = tk.calculate_min_max(da_converted)
+        cds_minimum.data.update(min_max_dict["cds_minimum"].data)
+        cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-    # Calculate new columndatasources for the individual years.
-    new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
-    # Update the existing columndatasources with the new data.
-    for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
-        old_cds.data.update(new_cds.data)
+        # Calculate new columndatasources for the individual years.
+        new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
+        # Update the existing columndatasources with the new data.
+        for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
+            old_cds.data.update(new_cds.data)
 
-    # Set plot attributes.
-    plot.title.text = extracted_data["title"]
-    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+        # Set plot attributes.
+        plot.title.text = extracted_data["title"]
+        plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-    # Find the day of year for the average minimum and maximum values.
-    global doy_minimum
-    doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
-    global doy_maximum
-    doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+        # Find the day of year for the average minimum and maximum values.
+        global doy_minimum
+        doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+        global doy_maximum
+        doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
-    citation.text = label_text(reference_period, first_year, second_to_last_year)
+        citation.text = label_text(reference_period, first_year, second_to_last_year)
 
 
 def update_zoom(attr, old, new):
-    if zoom_shortcuts.value == 'year':
-        plot.x_range.start = 1
-        plot.x_range.end = 366
-        plot.y_range.start = 0
-        plot.y_range.end = tk.find_nice_ylimit(da_converted)
+    with pn.param.set_values(bokeh_pane, loading=True):
+        if zoom_shortcuts.value == 'year':
+            plot.x_range.start = 1
+            plot.x_range.end = 366
+            plot.y_range.start = 0
+            plot.y_range.end = tk.find_nice_ylimit(da_converted)
 
-    elif zoom_shortcuts.value == 'zoom':
-        # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
-        # upper bound is not more than 31st of Dec.
-        x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
-        x_range_end = current_year_outline.data_source.data['day_of_year'][-1] + 30
-        plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
-        plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
-        set_zoom_yrange(padding_frac=0.05)
+        elif zoom_shortcuts.value == 'zoom':
+            # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
+            # upper bound is not more than 31st of Dec.
+            x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
+            x_range_end = current_year_outline.data_source.data['day_of_year'][-1] + 30
+            plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
+            plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
+            set_zoom_yrange(padding_frac=0.05)
 
-    elif zoom_shortcuts.value == 'min_extent':
-        # Plot two months around the day of year with the lowest average minimum value. Make sure that the lower bound
-        # is not less 1st of Jan and upper bound is not more than 31st of Dec.
-        plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
-        plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
-        set_zoom_yrange(padding_frac=0.05)
+        elif zoom_shortcuts.value == 'min_extent':
+            # Plot two months around the day of year with the lowest average minimum value. Make sure that the lower
+            # bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
+            plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
+            plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
+            set_zoom_yrange(padding_frac=0.05)
 
-    elif zoom_shortcuts.value == 'max_extent':
-        # Plot two months around the day of year with the highest average maximum value. Make sure that the lower bound
-        # is not less 1st of Jan and upper bound is not more than 31st of Dec.
-        plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
-        plot.x_range.end = (doy_maximum + 30 if doy_maximum + 30 < 366 else 366)
-        set_zoom_yrange(padding_frac=0.05)
+        elif zoom_shortcuts.value == 'max_extent':
+            # Plot two months around the day of year with the highest average maximum value. Make sure that the lower
+            # bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
+            plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
+            plot.x_range.end = (doy_maximum + 30 if doy_maximum + 30 < 366 else 366)
+            set_zoom_yrange(padding_frac=0.05)
 
 
 def set_zoom_yrange(padding_frac):
@@ -401,12 +405,13 @@ def set_zoom_yrange(padding_frac):
 
 
 def update_line_colour(attr, old, new):
-    colour = color_scale_selector.value
-    data_years = list(cds_individual_years.keys())
-    colours_dict = tk.find_line_colours(data_years[:-1], colour)
+    with pn.param.set_values(bokeh_pane, loading=True):
+        colour = color_scale_selector.value
+        data_years = list(cds_individual_years.keys())
+        colours_dict = tk.find_line_colours(data_years[:-1], colour)
 
-    for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
-        individual_year_glyph.glyph.line_color = colours_dict[year]
+        for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
+            individual_year_glyph.glyph.line_color = colours_dict[year]
 
 
 index_selector.on_change('value', update_data)
@@ -420,4 +425,4 @@ area_selector.on_change('value', update_zoom)
 
 color_scale_selector.on_change('value', update_line_colour)
 
-curdoc().add_root(column1)
+bokeh_pane = pn.pane.Bokeh(column1).servable()

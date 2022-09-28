@@ -1,6 +1,7 @@
 netcdf4==1.5.8
 xarray
 bottleneck
+panel
 bokeh
 numpy
 matplotlib

@@ -46,12 +46,12 @@ zoom_shortcuts = Select(title="Zoom shortcuts:",
 
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
 color_scale_selector = Select(title="Color scale of yearly data:",
-                              value="decadal",
-                              options=[("decadal", "By decade"),
-                                       ("viridis", "viridis"),
-                                       ("plasma", "plasma"),
-                                       ("batlow", "batlow"),
-                                       ("batlowS", "batlowS (CVD friendly)")])
+                              value="viridis",
+                              options=[("viridis", "Viridis"),
+                                       ("plasma", "Plasma"),
+                                       ("batlow", "Batlow"),
+                                       ("batlowS", "BatlowS"),
+                                       ("decadal", "Custom decadal")])
 
 # Download the data for the default index and area values.
 ds = tk.download_dataset(index_selector.value, area_selector.value)

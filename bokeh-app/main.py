@@ -361,8 +361,8 @@ def update_zoom(attr, old, new):
     elif zoom_shortcuts.value == 'zoom':
         # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
         # upper bound is not more than 31st of Dec.
-        x_range_start = line_glyph.data_source.data['day_of_year'][-1] - 30
-        x_range_end = line_glyph.data_source.data['day_of_year'][-1] + 30
+        x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
+        x_range_end = current_year_outline.data_source.data['day_of_year'][-1] + 30
         plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
         plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
         set_zoom_yrange(padding_frac=0.05)

@@ -278,14 +278,14 @@ if (this.item === "erase_all") {
     for (var i = 5; i < fig.renderers.length; i++) {
         fig.renderers[i].visible=false};
 
-    for (var i = fig.renderers.length; i > (fig.renderers.length - 5); i--) {
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 6); i--) {
         fig.renderers[i-1].visible=true};
 
 } else if (this.item === "last_2_years") {
     for (var i = 5; i < fig.renderers.length; i++) {
         fig.renderers[i].visible=false};
 
-    for (var i = fig.renderers.length; i > (fig.renderers.length - 2); i--) {
+    for (var i = fig.renderers.length; i > (fig.renderers.length - 3); i--) {
         fig.renderers[i-1].visible=true};
 }
 ''')

@@ -127,9 +127,13 @@ legend_list.append(("Min/Max", [minimum, maximum]))
 
 
 # Plot the individual years.
-colours_dict = tk.find_line_colours(cds_individual_years.keys(), color_scale_selector.value)
+data_years = tk.get_list_of_years(da)
+colours_dict = tk.find_line_colours(data_years[:-1], color_scale_selector.value)
 individual_years_glyphs = []
-for year, cds_individual_year in cds_individual_years.items():
+cds_individual_years_list = list(cds_individual_years.values())
+
+# Plot lines for all years except current one.
+for year, cds_individual_year in zip(data_years[:-1], cds_individual_years_list[:-1]):
     line_glyph = plot.line(x="day_of_year",
                            y="index_values",
                            source=cds_individual_year,
@@ -138,8 +142,22 @@ for year, cds_individual_year in cds_individual_years.items():
     legend_list.append((year, [line_glyph]))
     individual_years_glyphs.append(line_glyph)
 
-# Make sure the current year has a thicker line than the other years.
-line_glyph.glyph.line_width = 3
+# Plot the current year as two lines on top of each other (black and white dashed line).
+current_year_outline = plot.line(x="day_of_year",
+                                 y="index_values",
+                                 source=cds_individual_years_list[-1],
+                                 line_width=3,
+                                 line_color="black")
+
+current_year_filler = plot.line(x="day_of_year",
+                                y="index_values",
+                                source=cds_individual_years_list[-1],
+                                line_width=2,
+                                line_dash=[5, 5],
+                                line_color="white")
+
+legend_list.append((data_years[-1], [current_year_outline, current_year_filler]))
+individual_years_glyphs.append(current_year_outline)
 
 # To plot legends for the individual years we need to split the list of legends into several sublists. If we don't do
 # this the list will be so long that it's out of frame. The number below is the maximum number of elements that can
@@ -211,9 +229,8 @@ doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.asty
 doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
 # Add a bottom label with information about the data that's used to make the graphic.
-years = tk.get_list_of_years(da)
-first_year = years[0]
-second_to_last_year = years[-2]
+first_year = data_years[0]
+second_to_last_year = data_years[-2]
 
 
 def label_text(reference_period, first_year, second_to_last_year):
@@ -385,9 +402,10 @@ def set_zoom_yrange(padding_frac):
 
 def update_line_colour(attr, old, new):
     colour = color_scale_selector.value
-    colours_dict = tk.find_line_colours(cds_individual_years.keys(), colour)
+    data_years = list(cds_individual_years.keys())
+    colours_dict = tk.find_line_colours(data_years[:-1], colour)
 
-    for year, individual_year_glyph in zip(cds_individual_years.keys(), individual_years_glyphs):
+    for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
         individual_year_glyph.glyph.line_color = colours_dict[year]
 
 

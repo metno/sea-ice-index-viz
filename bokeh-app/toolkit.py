@@ -162,8 +162,6 @@ def find_line_colours(years, colour):
             full_colour_dict.update(decade_dict)
 
         colour_dict = {year: full_colour_dict[year] for year in years}
-        # Set the color of the current year to black.
-        colour_dict[list(years)[-1]] = "#000000"
 
     else:
         translation_dictionary = {"viridis": matplotlib.cm.viridis,
@@ -175,9 +173,5 @@ def find_line_colours(years, colour):
         colours = translation_dictionary[colour](normalised)
         colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
         colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
-
-        if colour in ("viridis", "plasma", "batlow"):
-            # Set the color of the current year to black.
-            colour_dict[list(years)[-1]] = "#000000"
 
     return colour_dict

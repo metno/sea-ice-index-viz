@@ -5,7 +5,7 @@ from bokeh.layouts import column, row
 import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
-pn.extension(loading_spinner='dots', loading_color='#00aa41', sizing_mode="stretch_width")
+pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
 
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="sie",
@@ -186,7 +186,7 @@ TOOLTIPS = """
         </div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Index:</span>
-            <span style="font-size: 12px;">@index_values</span>
+            <span style="font-size: 12px;">@index_values{0.000}</span>
             <span style="font-size: 12px;">mill. km<sup>2</sup></span>
         </div>
         <div>

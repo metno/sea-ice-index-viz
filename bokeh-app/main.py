@@ -5,7 +5,7 @@ from bokeh.layouts import column, row
 import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
-pn.extension(loading_spinner='dots', loading_color='#00aa41', sizing_mode="stretch_width")
+pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
 
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="sie",

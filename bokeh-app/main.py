@@ -186,7 +186,7 @@ TOOLTIPS = """
         </div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Index:</span>
-            <span style="font-size: 12px;">@index_values</span>
+            <span style="font-size: 12px;">@index_values{0.000}</span>
             <span style="font-size: 12px;">mill. km<sup>2</sup></span>
         </div>
         <div>

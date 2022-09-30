@@ -114,16 +114,16 @@ minimum = plot.line(x="day_of_year",
                     source=cds_minimum,
                     line_alpha=0.8,
                     color="black",
-                    line_width=2,
-                    line_dash="dashed")
+                    line_width=1.5,
+                    line_dash=[4, 1])
 
 maximum = plot.line(x="day_of_year",
                     y="maximum",
                     source=cds_maximum,
                     line_alpha=0.8,
                     color="black",
-                    line_width=2,
-                    line_dash="dashed")
+                    line_width=1.5,
+                    line_dash=[4, 1])
 
 legend_list.append(("Min/Max", [minimum, maximum]))
 
@@ -155,7 +155,7 @@ current_year_filler = plot.line(x="day_of_year",
                                 y="index_values",
                                 source=cds_individual_years_list[-1],
                                 line_width=2,
-                                line_dash=[5, 5],
+                                line_dash=[4, 4],
                                 line_color="white")
 
 legend_list.append((data_years[-1], [current_year_outline, current_year_filler]))

@@ -39,12 +39,11 @@ reference_period_selector = Select(title="Reference period of percentiles and me
                                             ("2020-2029", "2020s")])
 
 # Add a dropdown menu for different preselected zoom levels.
-zoom_shortcuts = Select(title="Zoom shortcuts:",
-                        value="year",
-                        options=[("year", "Year"),
-                                 ("zoom", "Two months centred on latest observation"),
-                                 ("min_extent", "Min extent"),
-                                 ("max_extent", "Max extent")])
+zoom_shortcuts = Dropdown(label="Zoom shortcuts:",
+                          menu=[("Year", "year"),
+                                ("Two months centred on latest observation", "zoom"),
+                                ("Min extent", "min_extent"),
+                                ("Max extent", "max_extent")])
 
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
 color_scale_selector = Select(title="Color scale of yearly data:",
@@ -343,6 +342,9 @@ def update_data(attr, old, new):
         for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
             old_cds.data.update(new_cds.data)
 
+        # Update the zoom to the new data using the current zoom state.
+        update_zoom(zoom_state)
+
         # Set plot attributes.
         plot.title.text = extracted_data["title"]
         plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
@@ -360,15 +362,15 @@ def update_data(attr, old, new):
                                    last_date_string)
 
 
-def update_zoom(attr, old, new):
+def update_zoom(new_zoom):
     with pn.param.set_values(bokeh_pane, loading=True):
-        if zoom_shortcuts.value == 'year':
+        if new_zoom == 'year':
             plot.x_range.start = 1
             plot.x_range.end = 366
             plot.y_range.start = 0
             plot.y_range.end = tk.find_nice_ylimit(da_converted)
 
-        elif zoom_shortcuts.value == 'zoom':
+        elif new_zoom == 'zoom':
             # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan and
             # upper bound is not more than 31st of Dec.
             x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
@@ -377,14 +379,14 @@ def update_zoom(attr, old, new):
             plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
             set_zoom_yrange(padding_frac=0.05)
 
-        elif zoom_shortcuts.value == 'min_extent':
+        elif new_zoom == 'min_extent':
             # Plot two months around the day of year with the lowest average minimum value. Make sure that the lower
             # bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
             plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
             plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
             set_zoom_yrange(padding_frac=0.05)
 
-        elif zoom_shortcuts.value == 'max_extent':
+        elif new_zoom == 'max_extent':
             # Plot two months around the day of year with the highest average maximum value. Make sure that the lower
             # bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
             plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
@@ -410,6 +412,14 @@ def set_zoom_yrange(padding_frac):
     plot.y_range.end = data_maximum + padding
 
 
+def zoom_wrapper(event):
+    # Wrap the zoom update function in order to use it with on_click from the Dropdown widget. Update the zoom state
+    # value.
+    global zoom_state
+    zoom_state = event.item
+    update_zoom(zoom_state)
+
+
 def update_line_colour(attr, old, new):
     with pn.param.set_values(bokeh_pane, loading=True):
         colour = color_scale_selector.value
@@ -420,15 +430,13 @@ def update_line_colour(attr, old, new):
             individual_year_glyph.glyph.line_color = colours_dict[year]
 
 
+# Initialise the zoom state.
+zoom_state = 'year'
+
 index_selector.on_change('value', update_data)
 area_selector.on_change('value', update_data)
 reference_period_selector.on_change('value', update_data)
-
-# The zoom level doesn't only depend on the current selection in the zoom shortcut, but also on the index and area.
-zoom_shortcuts.on_change('value', update_zoom)
-index_selector.on_change('value', update_zoom)
-area_selector.on_change('value', update_zoom)
-
+zoom_shortcuts.on_click(zoom_wrapper)
 color_scale_selector.on_change('value', update_line_colour)
 
 bokeh_pane = pn.pane.Bokeh(column1).servable()

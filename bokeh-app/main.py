@@ -264,12 +264,12 @@ try:
     menu = [("Erase all", "erase_all"),
             ("Show all", "show_all"),
             ("Last 5 years", "last_5_years"),
-            ("Last 2 years", "last_2_years")]
+            ("2 years", "2_years")]
 
     plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
 
     # The plot shortcuts use the following javascript callback code.
-    callback = CustomJS(args=dict(fig=plot), code='''
+    callback = CustomJS(args=dict(fig=plot, plot_area=area_selector), code='''
     if (this.item === "erase_all") {
         for (var i = 0; i < fig.renderers.length; i++) {
             fig.renderers[i].visible = false};
@@ -285,12 +285,19 @@ try:
         for (var i = fig.renderers.length; i > (fig.renderers.length - 6); i--) {
             fig.renderers[i-1].visible=true};
     
-    } else if (this.item === "last_2_years") {
+    } else if (this.item === "2_years") {
         for (var i = 5; i < fig.renderers.length; i++) {
             fig.renderers[i].visible=false};
-    
-        for (var i = fig.renderers.length; i > (fig.renderers.length - 3); i--) {
-            fig.renderers[i-1].visible=true};
+            
+            if (["NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"].includes(plot_area.value)) {
+                // Make years 2012 and 2020 visible for Northern Hemisphere.
+                fig.renderers[38].visible=true;
+                fig.renderers[46].visible=true;
+            } else {
+                // Make years 2014 and 2017 visible for Southern Hemisphere.
+                fig.renderers[40].visible=true;
+                fig.renderers[43].visible=true};
+            
     }
     ''')
 

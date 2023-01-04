@@ -22,7 +22,8 @@ def download_dataset(index, area):
                 "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sie_daily.nc",
                 "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sie_daily.nc",
                 "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sie_daily.nc",
-                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sie_daily.nc"}
+                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sie_daily.nc",
+                "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sie_daily.nc"}
 
     sia_dict = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc",
                 "bar": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bar/osisaf_bar_sia_daily.nc",
@@ -38,7 +39,8 @@ def download_dataset(index, area):
                 "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sia_daily.nc",
                 "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sia_daily.nc",
                 "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sia_daily.nc",
-                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sia_daily.nc"}
+                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sia_daily.nc",
+                "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sia_daily.nc"}
     
     url_dict = {"sie": sie_dict, "sia": sia_dict}
 

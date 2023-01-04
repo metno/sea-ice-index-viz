@@ -25,7 +25,8 @@ area_selector = Select(title="Area:", value="NH",
                                 ("indi", "Indian Ocean"),
                                 ("ross", "Ross Sea"),
                                 ("wedd", "Weddell Sea"),
-                                ("wpac", "Western Pacific Ocean")])
+                                ("wpac", "Western Pacific Ocean"),
+                                ("GLOBAL", "Global")])
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",

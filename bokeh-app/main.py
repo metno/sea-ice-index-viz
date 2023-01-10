@@ -32,12 +32,7 @@ area_selector = Select(title="Area:", value="NH",
 reference_period_selector = Select(title="Reference period of percentiles and median:",
                                    value="1981-2010",
                                    options=[("1981-2010", "1981-2010"),
-                                            ("1991-2020", "1991-2020"),
-                                            ("1980-1989", "1980s"),
-                                            ("1990-1999", "1990s"),
-                                            ("2000-2009", "2000s"),
-                                            ("2010-2019", "2010s"),
-                                            ("2020-2029", "2020s")])
+                                            ("1991-2020", "1991-2020")])
 
 # Add a dropdown menu for different preselected zoom levels.
 zoom_shortcuts = Dropdown(label="Zoom shortcuts:",
@@ -79,6 +74,32 @@ try:
     min_max_dict = tk.calculate_min_max(da_converted)
     cds_minimum = min_max_dict["cds_minimum"]
     cds_maximum = min_max_dict["cds_maximum"]
+
+    clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
+                                                          percentile2575=False,
+                                                          percentile1090=False,
+                                                          percentile0100=True)
+    clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
+                                                          percentile2575=False,
+                                                          percentile1090=False,
+                                                          percentile0100=True)
+    clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
+                                                          percentile2575=False,
+                                                          percentile1090=False,
+                                                          percentile0100=True)
+    clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
+                                                          percentile2575=False,
+                                                          percentile1090=False,
+                                                          percentile0100=True)
+
+    cds_percentile_1980s = clim_1980s_dict["cds_percentile_0100"]
+    cds_median_1980s = clim_1980s_dict["cds_median"]
+    cds_percentile_1990s = clim_1990s_dict["cds_percentile_0100"]
+    cds_median_1990s = clim_1990s_dict["cds_median"]
+    cds_percentile_2000s = clim_2000s_dict["cds_percentile_0100"]
+    cds_median_2000s = clim_2000s_dict["cds_median"]
+    cds_percentile_2010s = clim_2010s_dict["cds_percentile_0100"]
+    cds_median_2010s = clim_2010s_dict["cds_median"]
 
     # Calculate index of individual years.
     cds_individual_years = tk.calculate_individual_years(da, da_converted)
@@ -129,6 +150,41 @@ try:
 
     legend_list.append(("Min/Max", [minimum, maximum]))
 
+    # Plot decadal climatology.
+    data_years = tk.get_list_of_years(da)
+    colours_dict = tk.find_line_colours(data_years, color_scale_selector.value)
+
+    curve_1980s = tk.decadal_curves(plot,
+                                    cds_percentile_1980s,
+                                    cds_median_1980s,
+                                    colours_dict["1984"],
+                                    colours_dict["1984"])
+
+    legend_list.append(("1980s", curve_1980s))
+
+    curve_1990s = tk.decadal_curves(plot,
+                                    cds_percentile_1990s,
+                                    cds_median_1990s,
+                                    colours_dict["1994"],
+                                    colours_dict["1994"])
+
+    legend_list.append(("1990s", curve_1990s))
+
+    curve_2000s = tk.decadal_curves(plot,
+                                    cds_percentile_2000s,
+                                    cds_median_2000s,
+                                    colours_dict["2004"],
+                                    colours_dict["2004"])
+
+    legend_list.append(("2000s", curve_2000s))
+
+    curve_2010s = tk.decadal_curves(plot,
+                                    cds_percentile_2010s,
+                                    cds_median_2010s,
+                                    colours_dict["2014"],
+                                    colours_dict["2014"])
+
+    legend_list.append(("2010s", curve_2010s))
 
     # Plot the individual years.
     data_years = tk.get_list_of_years(da)
@@ -346,6 +402,32 @@ try:
             cds_minimum.data.update(min_max_dict["cds_minimum"].data)
             cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
+            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1980", "1989")),
+                                                                  percentile2575=False,
+                                                                  percentile1090=False,
+                                                                  percentile0100=True)
+            clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
+                                                                  percentile2575=False,
+                                                                  percentile1090=False,
+                                                                  percentile0100=True)
+            clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
+                                                                  percentile2575=False,
+                                                                  percentile1090=False,
+                                                                  percentile0100=True)
+            clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
+                                                                  percentile2575=False,
+                                                                  percentile1090=False,
+                                                                  percentile0100=True)
+
+            cds_percentile_1980s.data.update(clim_1980s_dict["cds_percentile_0100"].data)
+            cds_median_1980s.data.update(clim_1980s_dict["cds_median"].data)
+            cds_percentile_1990s.data.update(clim_1990s_dict["cds_percentile_0100"].data)
+            cds_median_1990s.data.update(clim_1990s_dict["cds_median"].data)
+            cds_percentile_2000s.data.update(clim_2000s_dict["cds_percentile_0100"].data)
+            cds_median_2000s.data.update(clim_2000s_dict["cds_median"].data)
+            cds_percentile_2010s.data.update(clim_2010s_dict["cds_percentile_0100"].data)
+            cds_median_2010s.data.update(clim_2010s_dict["cds_median"].data)
+
             # Calculate new columndatasources for the individual years.
             new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
             # Update the existing columndatasources with the new data.
@@ -435,6 +517,15 @@ try:
             colour = color_scale_selector.value
             data_years = list(cds_individual_years.keys())
             colours_dict = tk.find_line_colours(data_years[:-1], colour)
+
+            curve_1980s[0].glyph.fill_color = colours_dict["1984"]
+            curve_1980s[2].glyph.line_color = colours_dict["1984"]
+            curve_1990s[0].glyph.fill_color = colours_dict["1994"]
+            curve_1990s[2].glyph.line_color = colours_dict["1994"]
+            curve_2000s[0].glyph.fill_color = colours_dict["2004"]
+            curve_2000s[2].glyph.line_color = colours_dict["2004"]
+            curve_2010s[0].glyph.fill_color = colours_dict["2014"]
+            curve_2010s[2].glyph.line_color = colours_dict["2014"]
 
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
                 individual_year_glyph.glyph.line_color = colours_dict[year]

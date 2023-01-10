@@ -58,5 +58,7 @@ The bokeh-server application will be availavble at:
 
 ### Deployment to MET's Bokeh server
 
-* Merge main to branch `prototype`
-* Ask Massimo to update the bokeh server (https://seaice.metsis-api.met.no/SIE)
+* All developments are pushed to branch `prototype`
+* When the developments are good enough for a deployment 
+* Massimo merges `prototype` to `main`
+* Massimo updates the bokeh server (https://seaice.metsis-api.met.no/SIE). This automatically updates the cryo webpage.

@@ -72,26 +72,40 @@ def convert_and_interpolate_calendar(da):
     return da
 
 
-def calculate_percentiles_and_median(da):
-    percentile_10 = da.groupby("time.dayofyear").quantile(0.10).values
-    percentile_90 = da.groupby("time.dayofyear").quantile(0.90).values
-    percentile_25 = da.groupby("time.dayofyear").quantile(0.25).values
-    percentile_75 = da.groupby("time.dayofyear").quantile(0.75).values
-    median_array = da.groupby("time.dayofyear").median()
-    day_of_year = median_array.dayofyear.values
-    median = median_array.values
+def calculate_percentiles_and_median(da, percentile1090=True, percentile2575=True, percentile0100=False, median=True):
+    cds_dict = {}
 
-    cds_percentile_1090 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_10": percentile_10,
-                                            "percentile_90": percentile_90})
-    cds_percentile_2575 = ColumnDataSource({"day_of_year": day_of_year,
-                                            "percentile_25": percentile_25,
-                                            "percentile_75": percentile_75})
-    cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median})
+    if percentile0100:
+        percentile_0 = da.groupby("time.dayofyear").quantile(0)
+        percentile_100 = da.groupby("time.dayofyear").quantile(1)
+        cds_percentile_0100 = ColumnDataSource({"day_of_year": percentile_0.dayofyear.values,
+                                                "percentile_0": percentile_0.values,
+                                                "percentile_100": percentile_100.values})
+        cds_dict.update({"cds_percentile_0100": cds_percentile_0100})
 
-    return {"cds_percentile_1090": cds_percentile_1090,
-            "cds_percentile_2575": cds_percentile_2575,
-            "cds_median": cds_median}
+    if percentile1090:
+        percentile_10 = da.groupby("time.dayofyear").quantile(0.10)
+        percentile_90 = da.groupby("time.dayofyear").quantile(0.90)
+        cds_percentile_1090 = ColumnDataSource({"day_of_year": percentile_10.dayofyear.values,
+                                                "percentile_10": percentile_10.values,
+                                                "percentile_90": percentile_90.values})
+        cds_dict.update({"cds_percentile_1090": cds_percentile_1090})
+
+    if percentile2575:
+        percentile_25 = da.groupby("time.dayofyear").quantile(0.25)
+        percentile_75 = da.groupby("time.dayofyear").quantile(0.75)
+        cds_percentile_2575 = ColumnDataSource({"day_of_year": percentile_25.dayofyear.values,
+                                                "percentile_25": percentile_25.values,
+                                                "percentile_75": percentile_75.values})
+        cds_dict.update({"cds_percentile_2575": cds_percentile_2575})
+
+    if median:
+        median_array = da.groupby("time.dayofyear").median()
+        day_of_year = median_array.dayofyear.values
+        cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median_array.values})
+        cds_dict.update({"cds_median": cds_median})
+
+    return cds_dict
 
 
 def calculate_min_max(da):
@@ -177,3 +191,31 @@ def find_line_colours(years, colour):
         colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
 
     return colour_dict
+
+
+def decadal_curves(plot, percentile_source, median_source, fill_colour, line_colour):
+    percentile = plot.varea(x="day_of_year",
+                            y1="percentile_0",
+                            y2="percentile_100",
+                            source=percentile_source,
+                            fill_alpha=0.5,
+                            fill_color=fill_colour,
+                            visible=False)
+
+    median_outline = plot.line(x="day_of_year",
+                               y="median",
+                               source=median_source,
+                               line_width=2.2,
+                               color="black",
+                               alpha=0.6,
+                               visible=False)
+
+    median = plot.line(x="day_of_year",
+                       y="median",
+                       source=median_source,
+                       line_width=2,
+                       color=line_colour,
+                       alpha=0.6,
+                       visible=False)
+
+    return [percentile, median_outline, median]

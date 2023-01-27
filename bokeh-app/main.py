@@ -412,7 +412,7 @@ try:
             cds_minimum.data.update(min_max_dict["cds_minimum"].data)
             cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1980", "1989")),
+            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
                                                                   percentile2575=False,
                                                                   percentile1090=False,
                                                                   percentile0100=True)

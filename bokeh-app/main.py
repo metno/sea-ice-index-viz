@@ -10,23 +10,33 @@ pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stret
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="sie",
                         options=[("sie", "Sea Ice Extent"), ("sia", "Sea Ice Area")])
-area_selector = Select(title="Area:", value="NH",
-                       options=[("NH", "Northern Hemisphere"),
-                                ("bar", "Barents Sea"),
-                                ("beau", "Beaufort Sea"),
-                                ("chuk", "Chukchi Sea"),
-                                ("ess", "East Siberian Sea"),
-                                ("fram", "Fram Strait-NP"),
-                                ("kara", "Kara Sea"),
-                                ("lap", "Laptev Sea"),
-                                ("sval", "Svalbard-NIS"),
-                                ("SH", "Southern Hemisphere"),
-                                ("bell", "Amundsen-Bellingshausen Sea"),
-                                ("indi", "Indian Ocean"),
-                                ("ross", "Ross Sea"),
-                                ("wedd", "Weddell Sea"),
-                                ("wpac", "Western Pacific Ocean"),
-                                ("GLOBAL", "Global")])
+
+area_options = {
+    "Global": [
+        ("GLOBAL", "Global"),
+        ("NH", "Northern Hemisphere"),
+        ("SH", "Southern Hemisphere"),
+    ],
+    "Northern Hemisphere Regions": [
+        ("bar", "Barents Sea"),
+        ("beau", "Beaufort Sea"),
+        ("chuk", "Chukchi Sea"),
+        ("ess", "East Siberian Sea"),
+        ("fram", "Fram Strait-NP"),
+        ("kara", "Kara Sea"),
+        ("lap", "Laptev Sea"),
+        ("sval", "Svalbard-NIS"),
+    ],
+    "Southern Hemisphere Regions": [
+        ("bell", "Amundsen-Bellingshausen Sea"),
+        ("indi", "Indian Ocean"),
+        ("ross", "Ross Sea"),
+        ("wedd", "Weddell Sea"),
+        ("wpac", "Western Pacific Ocean"),
+    ]
+}
+
+area_selector = Select(title="Area:", value="NH", options=area_options)
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",

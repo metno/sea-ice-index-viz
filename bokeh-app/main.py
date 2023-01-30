@@ -298,34 +298,25 @@ try:
     doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
     # Add a bottom label with information about the data that's used to make the graphic.
-    first_year = data_years[0]
-    second_to_last_year = data_years[-2]
-    last_date_string = da.time[-1].dt.strftime('%Y-%m-%d').values
+    first_year = str(data_years[0])
+    second_to_last_year = str(data_years[-2])
+    last_date_string = str(da.time[-1].dt.strftime('%Y-%m-%d').values)
 
+    label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
+                 f"min/max for {first_year}-{second_to_last_year}\n" \
+                 "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                 f"Last data point: {last_date_string}"
 
-    def label_text(reference_period, first_year, second_to_last_year, last_date_string):
-        """Produces a string with climatology and data info."""
+    info_label = Label(x=5,
+                       y=5,
+                       x_units='screen',
+                       y_units='screen',
+                       text=label_text,
+                       text_font_size='12px',
+                       text_color='black')
 
-        label_text = f"Median and percentiles for {reference_period}, " \
-                     f"min/max for {first_year}-{second_to_last_year}\n" \
-                     "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                     "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
-                     f"Last data point: {last_date_string}"
-
-        return label_text
-
-
-    citation_text = label_text(reference_period_selector.value, first_year, second_to_last_year, last_date_string)
-
-    citation = Label(x=5,
-                     y=5,
-                     x_units='screen',
-                     y_units='screen',
-                     text=citation_text,
-                     text_font_size='12px',
-                     text_color='black')
-
-    plot.add_layout(citation)
+    plot.add_layout(info_label)
 
     # Create a dropdown button with plot shortcuts.
     menu = [("Erase all", "erase_all"),
@@ -370,6 +361,51 @@ try:
 
     # Make sure that callback code runs when user clicks on one of the choices.
     plot_shortcuts.js_on_event("menu_item_click", callback)
+
+    # The plot shortcuts use the following javascript callback code.
+    label_callback = CustomJS(args=dict(info_label=info_label,
+                                        refper=reference_period_selector,
+                                        first_year=first_year,
+                                        second_to_last_year=second_to_last_year,
+                                        last_date_string=last_date_string,
+                                        climatology=percentile_1090,
+                                        min_max=minimum), code='''
+    // initialise an empty string
+    let label_text = ``;
+    
+    if (climatology.visible === true) {
+        label_text = label_text
+                     + `Median and percentiles (25-75% and 10-90%) for `
+                     + `${refper.value.slice(0,4)}-${refper.value.slice(5)}`;
+
+        if (min_max.visible === false) {
+            // when the min/max lines are not visible add a newline
+            label_text = label_text + `\n`;
+        }
+    }
+            
+    if (min_max.visible === true) {
+        // the added string is different depending on whether the climatology glyphs are visible
+        if (climatology.visible === true) {
+            label_text = label_text + `, min/max for ${first_year}-${second_to_last_year}\n`;
+        } else {
+            label_text = label_text + `Min/max for ${first_year}-${second_to_last_year}\n`;
+        }
+    }
+            
+    label_text = label_text
+                 + `v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n`
+                 + `Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n`
+                 + `Last data point: ${last_date_string}`;
+    
+    info_label.text = label_text
+    ''')
+
+    # Check whether a change in the visibility state of the median and percentiles, and the min/max values has taken
+    # place
+    percentile_1090.js_on_change("visible", label_callback)
+    minimum.js_on_change("visible", label_callback)
+
 
     # Layout
     inputs = column(index_selector,
@@ -457,12 +493,6 @@ try:
             global doy_maximum
             doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
-            last_date_string = da.time[-1].dt.strftime('%Y-%m-%d').values
-            citation.text = label_text(reference_period,
-                                       first_year,
-                                       second_to_last_year,
-                                       last_date_string)
-
 
     def update_zoom(new_zoom):
         with pn.param.set_values(bokeh_pane, loading=True):
@@ -547,6 +577,7 @@ try:
     index_selector.on_change('value', update_data)
     area_selector.on_change('value', update_data)
     reference_period_selector.on_change('value', update_data)
+    reference_period_selector.js_on_change('value', label_callback)
     zoom_shortcuts.on_click(zoom_wrapper)
     color_scale_selector.on_change('value', update_line_colour)
 

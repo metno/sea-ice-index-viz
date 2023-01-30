@@ -10,23 +10,33 @@ pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stret
 # Add dropdown menus for index and area selection.
 index_selector = Select(title="Index:", value="sie",
                         options=[("sie", "Sea Ice Extent"), ("sia", "Sea Ice Area")])
-area_selector = Select(title="Area:", value="NH",
-                       options=[("NH", "Northern Hemisphere"),
-                                ("bar", "Barents Sea"),
-                                ("beau", "Beaufort Sea"),
-                                ("chuk", "Chukchi Sea"),
-                                ("ess", "East Siberian Sea"),
-                                ("fram", "Fram Strait-NP"),
-                                ("kara", "Kara Sea"),
-                                ("lap", "Laptev Sea"),
-                                ("sval", "Svalbard-NIS"),
-                                ("SH", "Southern Hemisphere"),
-                                ("bell", "Amundsen-Bellingshausen Sea"),
-                                ("indi", "Indian Ocean"),
-                                ("ross", "Ross Sea"),
-                                ("wedd", "Weddell Sea"),
-                                ("wpac", "Western Pacific Ocean"),
-                                ("GLOBAL", "Global")])
+
+area_options = {
+    "Global": [
+        ("GLOBAL", "Global"),
+        ("NH", "Northern Hemisphere"),
+        ("SH", "Southern Hemisphere"),
+    ],
+    "Northern Hemisphere Regions": [
+        ("bar", "Barents Sea"),
+        ("beau", "Beaufort Sea"),
+        ("chuk", "Chukchi Sea"),
+        ("ess", "East Siberian Sea"),
+        ("fram", "Fram Strait-NP"),
+        ("kara", "Kara Sea"),
+        ("lap", "Laptev Sea"),
+        ("sval", "Svalbard-NIS"),
+    ],
+    "Southern Hemisphere Regions": [
+        ("bell", "Amundsen-Bellingshausen Sea"),
+        ("indi", "Indian Ocean"),
+        ("ross", "Ross Sea"),
+        ("wedd", "Weddell Sea"),
+        ("wpac", "Western Pacific Ocean"),
+    ]
+}
+
+area_selector = Select(title="Area:", value="NH", options=area_options)
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
 reference_period_selector = Select(title="Reference period of percentiles and median:",
@@ -288,34 +298,25 @@ try:
     doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
     # Add a bottom label with information about the data that's used to make the graphic.
-    first_year = data_years[0]
-    second_to_last_year = data_years[-2]
-    last_date_string = da.time[-1].dt.strftime('%Y-%m-%d').values
+    first_year = str(data_years[0])
+    second_to_last_year = str(data_years[-2])
+    last_date_string = str(da.time[-1].dt.strftime('%Y-%m-%d').values)
 
+    label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
+                 f"min/max for {first_year}-{second_to_last_year}\n" \
+                 "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                 f"Last data point: {last_date_string}"
 
-    def label_text(reference_period, first_year, second_to_last_year, last_date_string):
-        """Produces a string with climatology and data info."""
+    info_label = Label(x=5,
+                       y=5,
+                       x_units='screen',
+                       y_units='screen',
+                       text=label_text,
+                       text_font_size='12px',
+                       text_color='black')
 
-        label_text = f"Median and percentiles for {reference_period}, " \
-                     f"min/max for {first_year}-{second_to_last_year}\n" \
-                     "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                     "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
-                     f"Last data point: {last_date_string}"
-
-        return label_text
-
-
-    citation_text = label_text(reference_period_selector.value, first_year, second_to_last_year, last_date_string)
-
-    citation = Label(x=5,
-                     y=5,
-                     x_units='screen',
-                     y_units='screen',
-                     text=citation_text,
-                     text_font_size='12px',
-                     text_color='black')
-
-    plot.add_layout(citation)
+    plot.add_layout(info_label)
 
     # Create a dropdown button with plot shortcuts.
     menu = [("Erase all", "erase_all"),
@@ -361,6 +362,51 @@ try:
     # Make sure that callback code runs when user clicks on one of the choices.
     plot_shortcuts.js_on_event("menu_item_click", callback)
 
+    # The plot shortcuts use the following javascript callback code.
+    label_callback = CustomJS(args=dict(info_label=info_label,
+                                        refper=reference_period_selector,
+                                        first_year=first_year,
+                                        second_to_last_year=second_to_last_year,
+                                        last_date_string=last_date_string,
+                                        climatology=percentile_1090,
+                                        min_max=minimum), code='''
+    // initialise an empty string
+    let label_text = ``;
+    
+    if (climatology.visible === true) {
+        label_text = label_text
+                     + `Median and percentiles (25-75% and 10-90%) for `
+                     + `${refper.value.slice(0,4)}-${refper.value.slice(5)}`;
+
+        if (min_max.visible === false) {
+            // when the min/max lines are not visible add a newline
+            label_text = label_text + `\n`;
+        }
+    }
+            
+    if (min_max.visible === true) {
+        // the added string is different depending on whether the climatology glyphs are visible
+        if (climatology.visible === true) {
+            label_text = label_text + `, min/max for ${first_year}-${second_to_last_year}\n`;
+        } else {
+            label_text = label_text + `Min/max for ${first_year}-${second_to_last_year}\n`;
+        }
+    }
+            
+    label_text = label_text
+                 + `v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n`
+                 + `Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n`
+                 + `Last data point: ${last_date_string}`;
+    
+    info_label.text = label_text
+    ''')
+
+    # Check whether a change in the visibility state of the median and percentiles, and the min/max values has taken
+    # place
+    percentile_1090.js_on_change("visible", label_callback)
+    minimum.js_on_change("visible", label_callback)
+
+
     # Layout
     inputs = column(index_selector,
                     area_selector,
@@ -402,7 +448,7 @@ try:
             cds_minimum.data.update(min_max_dict["cds_minimum"].data)
             cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1980", "1989")),
+            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
                                                                   percentile2575=False,
                                                                   percentile1090=False,
                                                                   percentile0100=True)
@@ -446,12 +492,6 @@ try:
             doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
             global doy_maximum
             doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
-
-            last_date_string = da.time[-1].dt.strftime('%Y-%m-%d').values
-            citation.text = label_text(reference_period,
-                                       first_year,
-                                       second_to_last_year,
-                                       last_date_string)
 
 
     def update_zoom(new_zoom):
@@ -537,6 +577,7 @@ try:
     index_selector.on_change('value', update_data)
     area_selector.on_change('value', update_data)
     reference_period_selector.on_change('value', update_data)
+    reference_period_selector.js_on_change('value', label_callback)
     zoom_shortcuts.on_click(zoom_wrapper)
     color_scale_selector.on_change('value', update_line_colour)
 

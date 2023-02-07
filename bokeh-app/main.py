@@ -84,30 +84,18 @@ try:
     cds_minimum = min_max_dict["cds_minimum"]
     cds_maximum = min_max_dict["cds_maximum"]
 
-    clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
+    clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
+    clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
+    clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
+    clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
 
-    cds_percentile_1980s = clim_1980s_dict["cds_percentile_0100"]
+    cds_span_1980s = clim_1980s_dict["cds_span"]
     cds_median_1980s = clim_1980s_dict["cds_median"]
-    cds_percentile_1990s = clim_1990s_dict["cds_percentile_0100"]
+    cds_span_1990s = clim_1990s_dict["cds_span"]
     cds_median_1990s = clim_1990s_dict["cds_median"]
-    cds_percentile_2000s = clim_2000s_dict["cds_percentile_0100"]
+    cds_span_2000s = clim_2000s_dict["cds_span"]
     cds_median_2000s = clim_2000s_dict["cds_median"]
-    cds_percentile_2010s = clim_2010s_dict["cds_percentile_0100"]
+    cds_span_2010s = clim_2010s_dict["cds_span"]
     cds_median_2010s = clim_2010s_dict["cds_median"]
 
     # Calculate index of individual years.
@@ -163,25 +151,25 @@ try:
     # Plot decadal climatology.
 
     curve_1980s = tk.decadal_curves(plot,
-                                    cds_percentile_1980s,
+                                    cds_span_1980s,
                                     cds_median_1980s,
                                     colours_dict["1984"],
                                     colours_dict["1984"])
 
     curve_1990s = tk.decadal_curves(plot,
-                                    cds_percentile_1990s,
+                                    cds_span_1990s,
                                     cds_median_1990s,
                                     colours_dict["1994"],
                                     colours_dict["1994"])
 
     curve_2000s = tk.decadal_curves(plot,
-                                    cds_percentile_2000s,
+                                    cds_span_2000s,
                                     cds_median_2000s,
                                     colours_dict["2004"],
                                     colours_dict["2004"])
 
     curve_2010s = tk.decadal_curves(plot,
-                                    cds_percentile_2010s,
+                                    cds_span_2010s,
                                     cds_median_2010s,
                                     colours_dict["2014"],
                                     colours_dict["2014"])
@@ -570,30 +558,18 @@ try:
             cds_minimum.data.update(min_max_dict["cds_minimum"].data)
             cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
+            clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
+            clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
+            clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
+            clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
 
-            cds_percentile_1980s.data.update(clim_1980s_dict["cds_percentile_0100"].data)
+            cds_span_1980s.data.update(clim_1980s_dict["cds_span"].data)
             cds_median_1980s.data.update(clim_1980s_dict["cds_median"].data)
-            cds_percentile_1990s.data.update(clim_1990s_dict["cds_percentile_0100"].data)
+            cds_span_1990s.data.update(clim_1990s_dict["cds_span"].data)
             cds_median_1990s.data.update(clim_1990s_dict["cds_median"].data)
-            cds_percentile_2000s.data.update(clim_2000s_dict["cds_percentile_0100"].data)
+            cds_span_2000s.data.update(clim_2000s_dict["cds_span"].data)
             cds_median_2000s.data.update(clim_2000s_dict["cds_median"].data)
-            cds_percentile_2010s.data.update(clim_2010s_dict["cds_percentile_0100"].data)
+            cds_span_2010s.data.update(clim_2010s_dict["cds_span"].data)
             cds_median_2010s.data.update(clim_2010s_dict["cds_median"].data)
 
             # Calculate new columndatasources for the individual years.

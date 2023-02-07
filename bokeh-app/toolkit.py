@@ -5,7 +5,7 @@ import cmcrameri.cm as cm
 import matplotlib
 
 
-def download_dataset(index, area):
+def download_and_extract_data(index, area):
     url_prefix = "https://thredds.met.no/thredds/dodsC"
 
     sie_dict = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
@@ -43,11 +43,8 @@ def download_dataset(index, area):
                 "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sia_daily.nc"}
     
     url_dict = {"sie": sie_dict, "sia": sia_dict}
+    ds = xr.open_dataset(url_dict[index][area], cache=False)
 
-    return xr.open_dataset(url_dict[index][area], cache=False)
-
-
-def extract_data(ds, index):
     da = ds[index]
     title = ds.title
     long_name = da.attrs["long_name"]
@@ -72,40 +69,26 @@ def convert_and_interpolate_calendar(da):
     return da
 
 
-def calculate_percentiles_and_median(da, percentile1090=True, percentile2575=True, percentile0100=False, median=True):
-    cds_dict = {}
+def calculate_percentiles_and_median(da):
+    percentile_10 = da.groupby("time.dayofyear").quantile(0.10)
+    percentile_90 = da.groupby("time.dayofyear").quantile(0.90)
+    cds_percentile_1090 = ColumnDataSource({"day_of_year": percentile_10.dayofyear.values,
+                                            "percentile_10": percentile_10.values,
+                                            "percentile_90": percentile_90.values})
 
-    if percentile0100:
-        percentile_0 = da.groupby("time.dayofyear").quantile(0)
-        percentile_100 = da.groupby("time.dayofyear").quantile(1)
-        cds_percentile_0100 = ColumnDataSource({"day_of_year": percentile_0.dayofyear.values,
-                                                "percentile_0": percentile_0.values,
-                                                "percentile_100": percentile_100.values})
-        cds_dict.update({"cds_percentile_0100": cds_percentile_0100})
+    percentile_25 = da.groupby("time.dayofyear").quantile(0.25)
+    percentile_75 = da.groupby("time.dayofyear").quantile(0.75)
+    cds_percentile_2575 = ColumnDataSource({"day_of_year": percentile_25.dayofyear.values,
+                                            "percentile_25": percentile_25.values,
+                                            "percentile_75": percentile_75.values})
 
-    if percentile1090:
-        percentile_10 = da.groupby("time.dayofyear").quantile(0.10)
-        percentile_90 = da.groupby("time.dayofyear").quantile(0.90)
-        cds_percentile_1090 = ColumnDataSource({"day_of_year": percentile_10.dayofyear.values,
-                                                "percentile_10": percentile_10.values,
-                                                "percentile_90": percentile_90.values})
-        cds_dict.update({"cds_percentile_1090": cds_percentile_1090})
+    median_array = da.groupby("time.dayofyear").median()
+    day_of_year = median_array.dayofyear.values
+    cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median_array.values})
 
-    if percentile2575:
-        percentile_25 = da.groupby("time.dayofyear").quantile(0.25)
-        percentile_75 = da.groupby("time.dayofyear").quantile(0.75)
-        cds_percentile_2575 = ColumnDataSource({"day_of_year": percentile_25.dayofyear.values,
-                                                "percentile_25": percentile_25.values,
-                                                "percentile_75": percentile_75.values})
-        cds_dict.update({"cds_percentile_2575": cds_percentile_2575})
-
-    if median:
-        median_array = da.groupby("time.dayofyear").median()
-        day_of_year = median_array.dayofyear.values
-        cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median_array.values})
-        cds_dict.update({"cds_median": cds_median})
-
-    return cds_dict
+    return {"cds_percentile_1090": cds_percentile_1090,
+            "cds_percentile_2575": cds_percentile_2575,
+            "cds_median": cds_median}
 
 
 def calculate_min_max(da):
@@ -122,6 +105,20 @@ def calculate_min_max(da):
     cds_maximum = ColumnDataSource({"day_of_year": day_of_year, "maximum": maximum})
 
     return {"cds_minimum": cds_minimum, "cds_maximum": cds_maximum}
+
+
+def calculate_span_and_median(da):
+    minimum = da.groupby("time.dayofyear").min()
+    maximum = da.groupby("time.dayofyear").max()
+    cds_span = ColumnDataSource({"day_of_year": minimum.dayofyear.values,
+                                 "minimum": minimum.values,
+                                 "maximum": maximum.values})
+
+    median_array = da.groupby("time.dayofyear").median()
+    day_of_year = median_array.dayofyear.values
+    cds_median = ColumnDataSource({"day_of_year": day_of_year, "median": median_array.values})
+
+    return {"cds_span": cds_span, "cds_median": cds_median}
 
 
 def calculate_individual_years(da, da_interpolated):
@@ -146,10 +143,12 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
-def find_yearly_min_max(da_converted, fill_colours_dict):
+def find_yearly_min_max(da_converted, fill_colors_dict):
+    # Find the years we have data for, except the current one. Select the data from those years and group it by year.
     years = get_list_of_years(da_converted)[:-1]
     da_sliced_and_grouped = da_converted.sel(time=slice(years[0], years[-1])).groupby("time.year")
 
+    # Find the yearly max/min date, day of year, and index value.
     yearly_max_date = da_sliced_and_grouped.apply(lambda x: x.idxmax(dim="time"))
     yearly_max_doy = da_converted.sel(time=yearly_max_date).time.dt.dayofyear
     yearly_max_index_value = da_converted.sel(time=yearly_max_date)
@@ -158,22 +157,25 @@ def find_yearly_min_max(da_converted, fill_colours_dict):
     yearly_min_doy = da_converted.sel(time=yearly_min_date).time.dt.dayofyear
     yearly_min_index_value = da_converted.sel(time=yearly_min_date)
 
-    fill_colours = [fill_colours_dict[year] for year in years]
+    # Use the same colours as the lines of the individual years.
+    colors = [fill_colors_dict[year] for year in years]
 
+    # Convert the max/min date to a string for use in hovertool display.
     hovertool_max_date = yearly_max_date.dt.strftime("%Y-%m-%d")
     hovertool_min_date = yearly_min_date.dt.strftime("%Y-%m-%d")
 
+    # Find the rank of the max/min values. Reverse the max rank such that the highest value has a rank of 1.
     yearly_max_rank = (-yearly_max_index_value).rank("year")
     yearly_min_rank = yearly_min_index_value.rank("year")
 
     cds_yearly_max = ColumnDataSource({"day_of_year": yearly_max_doy.values,
                                        "index_value": yearly_max_index_value.values,
-                                       "colour": fill_colours,
+                                       "color": colors,
                                        "date": hovertool_max_date.values,
                                        "rank": yearly_max_rank.values})
     cds_yearly_min = ColumnDataSource({"day_of_year": yearly_min_doy.values,
                                        "index_value": yearly_min_index_value.values,
-                                       "colour": fill_colours,
+                                       "color": colors,
                                        "date": hovertool_min_date.values,
                                        "rank": yearly_min_rank.values})
 
@@ -185,33 +187,34 @@ def find_nice_ylimit(da):
     return 1.10 * da.max().values
 
 
-def decade_colour_dict(decade, colour):
+def decade_color_dict(decade, color):
+    # Don't use the full breadth of the colormap, only go up till middle (halfway) to avoid the light colors.
     normalisation = np.linspace(0, 0.5, 10)
-    normalised_colour = [matplotlib.colors.to_hex(colour) for colour in colour(normalisation)]
+    normalised_color = [matplotlib.colors.to_hex(color) for color in color(normalisation)]
     years_in_decade = np.arange(decade, decade + 10, 1).astype(str)
 
-    return {year: year_colour for year, year_colour in zip(years_in_decade, normalised_colour)}
+    return {year: year_color for year, year_color in zip(years_in_decade, normalised_color)}
 
 
-def find_line_colours(years, colour):
+def find_line_colors(years, color):
     """Find a colors for the individual years."""
 
-    if colour == "decadal":
+    if color == "decadal":
         decades = [1970, 1980, 1990, 2000, 2010, 2020]
-        colours = [matplotlib.cm.Purples_r,
+        colors = [matplotlib.cm.Purples_r,
                    matplotlib.cm.Purples_r,
                    matplotlib.cm.Blues_r,
                    matplotlib.cm.Greens_r,
                    matplotlib.cm.Reds_r,
                    matplotlib.cm.Wistia_r]
 
-        full_colour_dict = {}
+        full_color_dict = {}
 
-        for decade, colour in zip(decades, colours):
-            decade_dict = decade_colour_dict(decade, colour)
-            full_colour_dict.update(decade_dict)
+        for decade, color in zip(decades, colors):
+            decade_dict = decade_color_dict(decade, color)
+            full_color_dict.update(decade_dict)
 
-        colour_dict = {year: full_colour_dict[year] for year in years}
+        color_dict = {year: full_color_dict[year] for year in years}
 
     else:
         translation_dictionary = {"viridis": matplotlib.cm.viridis,
@@ -220,36 +223,8 @@ def find_line_colours(years, colour):
                                   "batlowS": cm.batlowS}
 
         normalised = np.linspace(0, 1, len(years))
-        colours = translation_dictionary[colour](normalised)
-        colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
-        colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
+        colors = translation_dictionary[color](normalised)
+        colors_in_hex = [matplotlib.colors.to_hex(color) for color in colors]
+        color_dict = {year: color for year, color in zip(years, colors_in_hex)}
 
-    return colour_dict
-
-
-def decadal_curves(plot, percentile_source, median_source, fill_colour, line_colour):
-    percentile = plot.varea(x="day_of_year",
-                            y1="percentile_0",
-                            y2="percentile_100",
-                            source=percentile_source,
-                            fill_alpha=0.5,
-                            fill_color=fill_colour,
-                            visible=False)
-
-    median_outline = plot.line(x="day_of_year",
-                               y="median",
-                               source=median_source,
-                               line_width=2.2,
-                               color="black",
-                               alpha=0.6,
-                               visible=False)
-
-    median = plot.line(x="day_of_year",
-                       y="median",
-                       source=median_source,
-                       line_width=2,
-                       color=line_colour,
-                       alpha=0.6,
-                       visible=False)
-
-    return [percentile, median_outline, median]
+    return color_dict

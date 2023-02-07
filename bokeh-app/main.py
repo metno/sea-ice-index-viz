@@ -62,158 +62,170 @@ color_scale_selector = Select(title="Color scale of yearly data:",
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
-    # Download the data for the default index and area values.
-    ds = tk.download_dataset(index_selector.value, area_selector.value)
-    extracted_data = tk.extract_data(ds, index_selector.value)
+    extracted_data = tk.download_and_extract_data(index_selector.value, area_selector.value)
     da = extracted_data["da"]
 
-    # Calculate the percentiles and median, and the minimum and maximum value. We have to convert the dataset to use an
-    # all leap calendar and interpolate to fill in for the missing February 29th values.
+    # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.
     da_converted = tk.convert_and_interpolate_calendar(da)
 
     reference_period = reference_period_selector.value
     start_year = reference_period[:4]
     end_year = reference_period[5:]
 
+    # Calculate the reference period climatology (percentiles and median)
     percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
                                                                                                   end_year)))
     cds_percentile_1090 = percentiles_and_median_dict["cds_percentile_1090"]
     cds_percentile_2575 = percentiles_and_median_dict["cds_percentile_2575"]
     cds_median = percentiles_and_median_dict["cds_median"]
 
+    # Calculate the maximum and minumum values of the index for the entire time series except the current year.
     min_max_dict = tk.calculate_min_max(da_converted)
     cds_minimum = min_max_dict["cds_minimum"]
     cds_maximum = min_max_dict["cds_maximum"]
 
-    clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
-    clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
-                                                          percentile2575=False,
-                                                          percentile1090=False,
-                                                          percentile0100=True)
+    # Calculate the decadal climatology (0-100 percentile and median).
+    clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
+    clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
+    clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
+    clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
 
-    cds_percentile_1980s = clim_1980s_dict["cds_percentile_0100"]
+    cds_span_1980s = clim_1980s_dict["cds_span"]
     cds_median_1980s = clim_1980s_dict["cds_median"]
-    cds_percentile_1990s = clim_1990s_dict["cds_percentile_0100"]
+    cds_span_1990s = clim_1990s_dict["cds_span"]
     cds_median_1990s = clim_1990s_dict["cds_median"]
-    cds_percentile_2000s = clim_2000s_dict["cds_percentile_0100"]
+    cds_span_2000s = clim_2000s_dict["cds_span"]
     cds_median_2000s = clim_2000s_dict["cds_median"]
-    cds_percentile_2010s = clim_2010s_dict["cds_percentile_0100"]
+    cds_span_2010s = clim_2010s_dict["cds_span"]
     cds_median_2010s = clim_2010s_dict["cds_median"]
 
-    # Calculate index of individual years.
-    data_years = tk.get_list_of_years(da)
-    colours_dict = tk.find_line_colours(data_years, color_scale_selector.value)
-
+    # Calculate the index for the individual years.
     cds_individual_years = tk.calculate_individual_years(da, da_converted)
 
-    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colours_dict)
+    # Calculate the yearly min and max values.
+    data_years = tk.get_list_of_years(da)
+    colors_dict = tk.find_line_colors(data_years, color_scale_selector.value)
+    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
 
     # Plot the figure and make sure that it uses all available space.
     plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
     plot.sizing_mode = "stretch_both"
 
-    # Create an empty list to store labels and glyphs for plotting legends.
-    legend_list = []
+    # Plot the reference period climatology (percentiles and median).
+    percentile_1090_glyph = plot.varea(x="day_of_year",
+                                       y1="percentile_10",
+                                       y2="percentile_90",
+                                       source=cds_percentile_1090,
+                                       fill_alpha=0.6,
+                                       fill_color="darkgray")
 
-    # Plot percentile ranges.
-    percentile_1090 = plot.varea(x="day_of_year",
-                                 y1="percentile_10",
-                                 y2="percentile_90",
-                                 source=cds_percentile_1090,
-                                 fill_alpha=0.6,
-                                 fill_color="darkgray")
+    percentile_2575_glyph = plot.varea(x="day_of_year",
+                                       y1="percentile_25",
+                                       y2="percentile_75",
+                                       source=cds_percentile_2575,
+                                       fill_alpha=0.6,
+                                       fill_color="gray")
 
-    percentile_2575 = plot.varea(x="day_of_year",
-                                 y1="percentile_25",
-                                 y2="percentile_75",
-                                 source=cds_percentile_2575,
-                                 fill_alpha=0.6,
-                                 fill_color="gray")
+    median_glyph = plot.line(x="day_of_year", y="median", source=cds_median, line_width=2, color="dimgray", alpha=0.6)
 
-    # Plot the median.
-    median = plot.line(x="day_of_year", y="median", source=cds_median, line_width=2, color="dimgray", alpha=0.6)
+    # Plot the min and max lines based on the min and max values of the entire period except the current year.
+    min_line_glyph = plot.line(x="day_of_year",
+                               y="minimum",
+                               source=cds_minimum,
+                               line_alpha=0.8,
+                               color="black",
+                               line_width=1.5,
+                               line_dash=[4, 1])
 
-    # Plot the minimum and maximum values.
-    minimum = plot.line(x="day_of_year",
-                        y="minimum",
-                        source=cds_minimum,
-                        line_alpha=0.8,
-                        color="black",
-                        line_width=1.5,
-                        line_dash=[4, 1])
+    max_line_glyph = plot.line(x="day_of_year",
+                               y="maximum",
+                               source=cds_maximum,
+                               line_alpha=0.8,
+                               color="black",
+                               line_width=1.5,
+                               line_dash=[4, 1])
 
-    maximum = plot.line(x="day_of_year",
-                        y="maximum",
-                        source=cds_maximum,
-                        line_alpha=0.8,
-                        color="black",
-                        line_width=1.5,
-                        line_dash=[4, 1])
+    # Create a function for plotting the decadal climatology.
+    def decadal_curves(plot, percentile_source, median_source, fill_color, line_color):
+        percentile = plot.varea(x="day_of_year",
+                                y1="minimum",
+                                y2="maximum",
+                                source=percentile_source,
+                                fill_alpha=0.5,
+                                fill_color=fill_color,
+                                visible=False)
 
-    # Plot decadal climatology.
+        median_outline = plot.line(x="day_of_year",
+                                   y="median",
+                                   source=median_source,
+                                   line_width=2.2,
+                                   color="black",
+                                   alpha=0.6,
+                                   visible=False)
 
-    curve_1980s = tk.decadal_curves(plot,
-                                    cds_percentile_1980s,
-                                    cds_median_1980s,
-                                    colours_dict["1984"],
-                                    colours_dict["1984"])
+        median = plot.line(x="day_of_year",
+                           y="median",
+                           source=median_source,
+                           line_width=2,
+                           color=line_color,
+                           alpha=0.6,
+                           visible=False)
 
-    curve_1990s = tk.decadal_curves(plot,
-                                    cds_percentile_1990s,
-                                    cds_median_1990s,
-                                    colours_dict["1994"],
-                                    colours_dict["1994"])
+        return [percentile, median_outline, median]
 
-    curve_2000s = tk.decadal_curves(plot,
-                                    cds_percentile_2000s,
-                                    cds_median_2000s,
-                                    colours_dict["2004"],
-                                    colours_dict["2004"])
+    # Plot the decadal climatology.
+    curve_1980s_glyph_list = decadal_curves(plot,
+                                            cds_span_1980s,
+                                            cds_median_1980s,
+                                            colors_dict["1984"],
+                                            colors_dict["1984"])
 
-    curve_2010s = tk.decadal_curves(plot,
-                                    cds_percentile_2010s,
-                                    cds_median_2010s,
-                                    colours_dict["2014"],
-                                    colours_dict["2014"])
+    curve_1990s_glyph_list = decadal_curves(plot,
+                                            cds_span_1990s,
+                                            cds_median_1990s,
+                                            colors_dict["1994"],
+                                            colors_dict["1994"])
+
+    curve_2000s_glyph_list = decadal_curves(plot,
+                                            cds_span_2000s,
+                                            cds_median_2000s,
+                                            colors_dict["2004"],
+                                            colors_dict["2004"])
+
+    curve_2010s_glyph_list = decadal_curves(plot,
+                                            cds_span_2010s,
+                                            cds_median_2010s,
+                                            colors_dict["2014"],
+                                            colors_dict["2014"])
 
     # Plot the individual years.
     data_years = tk.get_list_of_years(da)
-    colours_dict = tk.find_line_colours(data_years[:-1], color_scale_selector.value)
+    colors_dict = tk.find_line_colors(data_years[:-1], color_scale_selector.value)
     individual_years_glyphs = []
     individual_years_glyphs_legend_list = []
     cds_individual_years_list = list(cds_individual_years.values())
 
-    # Plot lines for all years except current one.
+    # Plot all lines except for current year.
     for year, cds_individual_year in zip(data_years[:-1], cds_individual_years_list[:-1]):
         line_glyph = plot.line(x="day_of_year",
                                y="index_values",
                                source=cds_individual_year,
                                line_width=2,
-                               line_color=colours_dict[year])
+                               line_color=colors_dict[year])
         individual_years_glyphs.append(line_glyph)
         individual_years_glyphs_legend_list.append((year, [line_glyph]))
 
+    # Plot the yearly max and min values as triangles and circles, respectively.
     yearly_max_glyph = plot.triangle(x="day_of_year",
                                      y="index_value",
-                                     color="colour",
+                                     color="color",
                                      size=6,
                                      source=cds_yearly_max,
                                      visible=False)
 
     yearly_min_glyph = plot.circle(x="day_of_year",
                                    y="index_value",
-                                   color="colour",
+                                   color="color",
                                    size=6,
                                    source=cds_yearly_min,
                                    visible=False)
@@ -232,62 +244,18 @@ try:
                                     line_dash=[4, 4],
                                     line_color="white")
 
+    # Add only the current year outline to list of individual year glyphs since we only need one of the current year
+    # glyphs to display the hovertool values.
     individual_years_glyphs.append(current_year_outline)
 
-    # Add a hovertool to display the year, day of year, and index value of the individual years.
-    MAX_TOOLTIPS = """
-    <div>
-        <div>
-            <span style="font-size: 14px; font-weight: bold;">Yearly maximum</span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Date:</span>
-            <span style="font-size: 12px;">@date</span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Index:</span>
-            <span style="font-size: 12px;">@index_value{0.000}</span>
-            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Rank:</span>
-            <span style="font-size: 12px;">@rank</span>
-        </div>
-    </div>
-    """
-
-    MIN_TOOLTIPS = """
-    <div>
-        <div>
-            <span style="font-size: 14px; font-weight: bold;">Yearly minimum</span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Date:</span>
-            <span style="font-size: 12px;">@date</span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Index:</span>
-            <span style="font-size: 12px;">@index_value{0.000}</span>
-            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
-        </div>
-        <div>
-            <span style="font-size: 12px; font-weight: bold">Rank:</span>
-            <span style="font-size: 12px;">@rank</span>
-        </div>
-    </div>
-    """
-
-    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS))
-    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS))
-
     # Add labels and glyphs to legend list to get the desired order.
-    legend_list.append(("Climatology", [percentile_1090, percentile_2575, median]))
-    legend_list.append(("Min/Max", [minimum, maximum]))
-    legend_list.append(("Yearly min/max", [yearly_max_glyph, yearly_min_glyph]))
-    legend_list.extend([("1980s", curve_1980s),
-                        ("1990s", curve_1990s),
-                        ("2000s", curve_2000s),
-                        ("2010s", curve_2010s)])
+    legend_list = [("Climatology", [percentile_1090_glyph, percentile_2575_glyph, median_glyph]),
+                   ("Min/Max", [min_line_glyph, max_line_glyph]),
+                   ("Yearly min/max", [yearly_max_glyph, yearly_min_glyph])]
+    legend_list.extend([("1980s", curve_1980s_glyph_list),
+                        ("1990s", curve_1990s_glyph_list),
+                        ("2000s", curve_2000s_glyph_list),
+                        ("2010s", curve_2010s_glyph_list)])
     legend_list.extend(individual_years_glyphs_legend_list)
     legend_list.append((data_years[-1], [current_year_outline, current_year_filler]))
 
@@ -307,7 +275,7 @@ try:
     # Make the clicking the legend hide/show the given element.
     plot.legend.click_policy = "hide"
 
-    # Add a hovertool to display the year, day of year, and index value of the individual years.
+    # Add a hovertool to display the date, index value, and rank of the individual years.
     TOOLTIPS = """
     <div>
         <div>
@@ -327,6 +295,54 @@ try:
     """
 
     plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS))
+
+    # Add a hovertool to display the date, index value, and rank of the yearly max values.
+    MAX_TOOLTIPS = """
+        <div>
+            <div>
+                <span style="font-size: 14px; font-weight: bold;">Yearly maximum</span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Date:</span>
+                <span style="font-size: 12px;">@date</span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Index:</span>
+                <span style="font-size: 12px;">@index_value{0.000}</span>
+                <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Rank:</span>
+                <span style="font-size: 12px;">@rank</span>
+            </div>
+        </div>
+        """
+
+    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS))
+
+    # Add a hovertool to display the date, index value, and rank of the yearly min values.
+    MIN_TOOLTIPS = """
+        <div>
+            <div>
+                <span style="font-size: 14px; font-weight: bold;">Yearly minimum</span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Date:</span>
+                <span style="font-size: 12px;">@date</span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Index:</span>
+                <span style="font-size: 12px;">@index_value{0.000}</span>
+                <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Rank:</span>
+                <span style="font-size: 12px;">@rank</span>
+            </div>
+        </div>
+        """
+
+    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS))
 
     # Hardcode the x-ticks (day_of_year, date).
     plot.x_range = Range1d(start=1, end=366)
@@ -348,14 +364,14 @@ try:
     plot.xaxis.major_label_overrides = x_ticks
     plot.xaxis.axis_label = "Date"
 
-    # Find a nice upper y-limit divisible by two.
+    # Find an upper y-limit and set y-tick properties and y-label.
     upper_y_lim = tk.find_nice_ylimit(da)
     plot.y_range = Range1d(start=0, end=upper_y_lim)
     plot.y_range.reset_end = upper_y_lim
     plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-    # Find the day of year with the minimum and maximum values.
+    # Find the day of year with the minimum and maximum values. These are used in the zoom shortcuts.
     doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
     doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
@@ -388,56 +404,105 @@ try:
 
     plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
 
-    # The plot shortcuts use the following javascript callback code.
-    callback = CustomJS(args=dict(fig=plot, plot_area=area_selector), code='''
-    if (this.item === "erase_all") {
-        for (var i = 0; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible = false};
-            
-    } else if (this.item === "show_all") {
-        for (var i = 0; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible = true};
-    
-    } else if (this.item === "last_5_years") {
-        for (var i = 5; i < fig.renderers.length - 4; i++) {
-            fig.renderers[i].visible=false};
-    
-        for (var i = fig.renderers.length - 8; i < (fig.renderers.length - 4); i++) {
-            // Make the 4 years before the current year visible.
-            fig.renderers[i].visible=true};
-            
-        for (var i = fig.renderers.length - 2; i < fig.renderers.length; i++) {
-            // Make the current year visible.
-            fig.renderers[i].visible=true};
-    
-    } else if (this.item === "2_years") {
-        for (var i = 5; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible=false};
-            
-            if (["NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"].includes(plot_area.value)) {
-                // Make years 2012 and 2020 visible for Northern Hemisphere.
-                fig.renderers[50].visible=true;
-                fig.renderers[58].visible=true;
-            } else {
-                // Make years 2014 and 2017 visible for Southern Hemisphere.
-                fig.renderers[52].visible=true;
-                fig.renderers[55].visible=true};
-            
-    }
-    ''')
+    def plot_shortcuts_callback(new_value):
+        if new_value.item == "erase_all":
+            # All glyphs will be hidden.
+            percentile_1090_glyph.visible = False
+            percentile_2575_glyph.visible = False
+            median_glyph.visible = False
+            min_line_glyph.visible = False
+            max_line_glyph.visible = False
+
+            for i in range(3):
+                curve_1980s_glyph_list[i].visible = False
+                curve_1990s_glyph_list[i].visible = False
+                curve_2000s_glyph_list[i].visible = False
+                curve_2010s_glyph_list[i].visible = False
+
+            for glyph in individual_years_glyphs:
+                glyph.visible = False
+            current_year_filler.visible = False
+
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
+
+        if new_value.item == "show_all":
+            # All glyphs except for the decadal curves and yearly min/max markers will be visible.
+            percentile_1090_glyph.visible = True
+            percentile_2575_glyph.visible = True
+            median_glyph.visible = True
+            min_line_glyph.visible = True
+            max_line_glyph.visible = True
+
+            for i in range(3):
+                curve_1980s_glyph_list[i].visible = False
+                curve_1990s_glyph_list[i].visible = False
+                curve_2000s_glyph_list[i].visible = False
+                curve_2010s_glyph_list[i].visible = False
+
+            for glyph in individual_years_glyphs:
+                glyph.visible = True
+            current_year_filler.visible = True
+
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
+
+        if new_value.item == "last_5_years":
+            # Hide decadal curves and make sure the last 5 years a visible.
+            for i in range(3):
+                curve_1980s_glyph_list[i].visible = False
+                curve_1990s_glyph_list[i].visible = False
+                curve_2000s_glyph_list[i].visible = False
+                curve_2010s_glyph_list[i].visible = False
+
+            for glyph in individual_years_glyphs[:-4]:
+                glyph.visible = False
+            for glyph in individual_years_glyphs[-5:]:
+                glyph.visible = True
+            current_year_filler.visible = True
+
+        if new_value.item == "2_years":
+            # Hide decadal curves and all individual years, and show 2 hemisphere-dependent years.
+            for i in range(3):
+                curve_1980s_glyph_list[i].visible = False
+                curve_1990s_glyph_list[i].visible = False
+                curve_2000s_glyph_list[i].visible = False
+                curve_2010s_glyph_list[i].visible = False
+
+            for glyph in individual_years_glyphs:
+                glyph.visible = False
+            current_year_filler.visible = False
+
+            if area_selector.value in ("NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"):
+                # Show years 2012 and 2020 for the northern hemisphere.
+                year_2012_index = list(data_years).index("2012")
+                year_2020_index = list(data_years).index("2020")
+
+                individual_years_glyphs[year_2012_index].visible = True
+                individual_years_glyphs[year_2020_index].visible = True
+
+            else:
+                # Show years 2014 and 2022 for the southern hemisphere.
+                year_2014_index = list(data_years).index("2014")
+                year_2022_index = list(data_years).index("2022")
+
+                individual_years_glyphs[year_2014_index].visible = True
+                individual_years_glyphs[year_2022_index].visible = True
+
 
     # Make sure that callback code runs when user clicks on one of the choices.
-    plot_shortcuts.js_on_event("menu_item_click", callback)
+    plot_shortcuts.on_click(plot_shortcuts_callback)
 
-    # The plot shortcuts use the following javascript callback code.
+    # Create a label callback to update the bottom label so that the text about the median and percentiles,
+    # and the min/max lines is only shown when they are visible, respectively.
     label_callback = CustomJS(args=dict(info_label=info_label,
                                         refper=reference_period_selector,
                                         first_year=first_year,
                                         second_to_last_year=second_to_last_year,
                                         last_date_string=last_date_string,
-                                        climatology=percentile_1090,
-                                        min_max=minimum), code='''
-    // initialise an empty string
+                                        climatology=percentile_1090_glyph,
+                                        min_max=min_line_glyph), code='''
+    // Initialise an empty string
     let label_text = ``;
     
     if (climatology.visible === true) {
@@ -446,13 +511,13 @@ try:
                      + `${refper.value.slice(0,4)}-${refper.value.slice(5)}`;
 
         if (min_max.visible === false) {
-            // when the min/max lines are not visible add a newline
+            // When the min/max lines are not visible add a newline
             label_text = label_text + `\n`;
         }
     }
             
     if (min_max.visible === true) {
-        // the added string is different depending on whether the climatology glyphs are visible
+        // The added string is different depending on whether the climatology glyphs are visible
         if (climatology.visible === true) {
             label_text = label_text + `, min/max for ${first_year}-${second_to_last_year}\n`;
         } else {
@@ -469,12 +534,11 @@ try:
     ''')
 
     # Check whether a change in the visibility state of the median and percentiles, and the min/max values has taken
-    # place
-    percentile_1090.js_on_change("visible", label_callback)
-    minimum.js_on_change("visible", label_callback)
+    # place and run the callback function if so.
+    percentile_1090_glyph.js_on_change("visible", label_callback)
+    min_line_glyph.js_on_change("visible", label_callback)
 
-
-    # Layout
+    # Define the layout.
     inputs = column(index_selector,
                     area_selector,
                     reference_period_selector,
@@ -489,76 +553,80 @@ try:
     column1.sizing_mode = "stretch_both"
 
 
+    def update_reference_period(attr, old, new):
+        # Function that is used to update the climatology when the reference period is changed.
+        with pn.param.set_values(bokeh_pane, loading=True):
+            reference_period = new
+
+            start_year = reference_period[:4]
+            end_year = reference_period[5:]
+            percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
+                                                                                                          end_year)))
+
+            cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
+            cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
+            cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+
+
     def update_data(attr, old, new):
+        # Function that is used to update the plots when the index or area selections are changed.
         with pn.param.set_values(bokeh_pane, loading=True):
             # Update plot with new values from selectors.
             index = index_selector.value
             area = area_selector.value
             reference_period = reference_period_selector.value
 
-            ds = tk.download_dataset(index, area)
-            extracted_data = tk.extract_data(ds, index)
+            # Download and extract new data.
+            extracted_data = tk.download_and_extract_data(index, area)
             da = extracted_data["da"]
 
+            # Make sure da_converted is global because it's used by other callback functions.
             global da_converted
+            # Convert calendar to all_leap and interpolate missing February 29th values.
             da_converted = tk.convert_and_interpolate_calendar(da)
 
-            start_year = reference_period[:4]
-            end_year = reference_period[5:]
-            percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
-                                                                                                          end_year)))
-            cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
-            cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
-            cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+            # Recalculate and update the climatology plots (percentiles and median).
+            update_reference_period(attr=None, old=None, new=reference_period)
 
+            # Update min/max lines.
             min_max_dict = tk.calculate_min_max(da_converted)
             cds_minimum.data.update(min_max_dict["cds_minimum"].data)
             cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-            clim_1980s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1978", "1989")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_1990s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("1990", "1999")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_2000s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2000", "2009")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
-            clim_2010s_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice("2010", "2019")),
-                                                                  percentile2575=False,
-                                                                  percentile1090=False,
-                                                                  percentile0100=True)
+            # Update decadal climatology.
+            clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
+            clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
+            clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
+            clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
 
-            cds_percentile_1980s.data.update(clim_1980s_dict["cds_percentile_0100"].data)
+            cds_span_1980s.data.update(clim_1980s_dict["cds_span"].data)
             cds_median_1980s.data.update(clim_1980s_dict["cds_median"].data)
-            cds_percentile_1990s.data.update(clim_1990s_dict["cds_percentile_0100"].data)
+            cds_span_1990s.data.update(clim_1990s_dict["cds_span"].data)
             cds_median_1990s.data.update(clim_1990s_dict["cds_median"].data)
-            cds_percentile_2000s.data.update(clim_2000s_dict["cds_percentile_0100"].data)
+            cds_span_2000s.data.update(clim_2000s_dict["cds_span"].data)
             cds_median_2000s.data.update(clim_2000s_dict["cds_median"].data)
-            cds_percentile_2010s.data.update(clim_2010s_dict["cds_percentile_0100"].data)
+            cds_span_2010s.data.update(clim_2010s_dict["cds_span"].data)
             cds_median_2010s.data.update(clim_2010s_dict["cds_median"].data)
 
-            # Calculate new columndatasources for the individual years.
+            # Update the individual years.
             new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
-            # Update the existing columndatasources with the new data.
             for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
                 old_cds.data.update(new_cds.data)
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da, colours_dict)
+            # Update the yearly min/max values.
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
             # Update the zoom to the new data using the current zoom state.
-            update_zoom(zoom_state)
+            update_zoom(new_zoom=None)
 
-            # Set plot attributes.
+            # Update the plot title and x-axis label.
             plot.title.text = extracted_data["title"]
             plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-            # Find the day of year for the average minimum and maximum values.
+            # Find the day of year for the average minimum and maximum values. These are global variables because
+            # they are used in other callbacks.
             global doy_minimum
             doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
             global doy_maximum
@@ -566,6 +634,7 @@ try:
 
 
     def update_zoom(new_zoom):
+        # The callback function that updates the zoom level when the zoom shortcut is used.
         with pn.param.set_values(bokeh_pane, loading=True):
             if new_zoom == 'year':
                 plot.x_range.start = 1
@@ -599,21 +668,28 @@ try:
 
     def set_zoom_yrange(padding_frac):
         # Set the y-range between the minimum and maximum values plus a little padding.
-        doy_start = plot.x_range.start - 1
-        doy_end = plot.x_range.end - 1
 
-        data_minimum = da_converted.groupby("time.dayofyear").min().sel(dayofyear=slice(doy_start, doy_end)).min().values
-        data_maximum = da_converted.groupby("time.dayofyear").max().sel(dayofyear=slice(doy_start, doy_end)).max().values
+        # Find the x-range.
+        doy_start = plot.x_range.start
+        doy_end = plot.x_range.end
+
+        # Find the min and max values for each day of year.
+        dayofyear_min_values = da_converted.groupby("time.dayofyear").min()
+        dayofyear_max_values = da_converted.groupby("time.dayofyear").max()
+
+        # Find the lowest min and highest max values inside the x-range displayed.
+        data_min_value = dayofyear_min_values.sel(dayofyear=slice(doy_start, doy_end)).min().values
+        data_max_value = dayofyear_max_values.sel(dayofyear=slice(doy_start, doy_end)).max().values
 
         # Sometimes the minimum and maximum values are the same. Account for this to always have some padding.
-        if data_maximum - data_minimum < 1E-3:
-            padding = data_maximum * padding_frac
+        if data_max_value - data_min_value < 1E-3:
+            padding = data_max_value * padding_frac
         else:
-            padding = (data_maximum - data_minimum) * padding_frac
+            padding = (data_max_value - data_min_value) * padding_frac
 
-        plot.y_range.start = (data_minimum - padding if data_minimum - padding > 0 else 0)
-        plot.y_range.end = data_maximum + padding
-
+        # Set the y-range.
+        plot.y_range.start = (data_min_value - padding if data_min_value - padding > 0 else 0)
+        plot.y_range.end = data_max_value + padding
 
     def zoom_wrapper(event):
         # Wrap the zoom update function in order to use it with on_click from the Dropdown widget. Update the zoom state
@@ -622,26 +698,26 @@ try:
         zoom_state = event.item
         update_zoom(zoom_state)
 
-
-    def update_line_colour(attr, old, new):
+    def update_line_color(attr, old, new):
+        # Function that updates the colors of glyphs.
         with pn.param.set_values(bokeh_pane, loading=True):
-            colour = color_scale_selector.value
+            color = color_scale_selector.value
             data_years = list(cds_individual_years.keys())
-            colours_dict = tk.find_line_colours(data_years[:-1], colour)
+            colors_dict = tk.find_line_colors(data_years[:-1], color)
 
-            curve_1980s[0].glyph.fill_color = colours_dict["1984"]
-            curve_1980s[2].glyph.line_color = colours_dict["1984"]
-            curve_1990s[0].glyph.fill_color = colours_dict["1994"]
-            curve_1990s[2].glyph.line_color = colours_dict["1994"]
-            curve_2000s[0].glyph.fill_color = colours_dict["2004"]
-            curve_2000s[2].glyph.line_color = colours_dict["2004"]
-            curve_2010s[0].glyph.fill_color = colours_dict["2014"]
-            curve_2010s[2].glyph.line_color = colours_dict["2014"]
+            curve_1980s_glyph_list[0].glyph.fill_color = colors_dict["1984"]
+            curve_1980s_glyph_list[2].glyph.line_color = colors_dict["1984"]
+            curve_1990s_glyph_list[0].glyph.fill_color = colors_dict["1994"]
+            curve_1990s_glyph_list[2].glyph.line_color = colors_dict["1994"]
+            curve_2000s_glyph_list[0].glyph.fill_color = colors_dict["2004"]
+            curve_2000s_glyph_list[2].glyph.line_color = colors_dict["2004"]
+            curve_2010s_glyph_list[0].glyph.fill_color = colors_dict["2014"]
+            curve_2010s_glyph_list[2].glyph.line_color = colors_dict["2014"]
 
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
-                individual_year_glyph.glyph.line_color = colours_dict[year]
+                individual_year_glyph.glyph.line_color = colors_dict[year]
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colours_dict)
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
@@ -649,16 +725,18 @@ try:
     # Initialise the zoom state.
     zoom_state = 'year'
 
+    # Run callbacks when widget values change.
     index_selector.on_change('value', update_data)
     area_selector.on_change('value', update_data)
-    reference_period_selector.on_change('value', update_data)
+    reference_period_selector.on_change('value', update_reference_period)
     reference_period_selector.js_on_change('value', label_callback)
     zoom_shortcuts.on_click(zoom_wrapper)
-    color_scale_selector.on_change('value', update_line_colour)
+    color_scale_selector.on_change('value', update_line_color)
 
     bokeh_pane = pn.pane.Bokeh(column1).servable()
 
 except OSError:
+    # If the datafile is unavailable when the script starts display the message below instead of running the script.
     text = Paragraph(text="Sea ice data unavailable. Please try again in a few minutes.", style={"font-size": "30px"})
 
     bokeh_pane = pn.pane.Bokeh(text).servable()

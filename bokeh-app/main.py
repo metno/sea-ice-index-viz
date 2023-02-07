@@ -398,7 +398,7 @@ try:
             yearly_max_glyph.visible = False
 
         if new_value.item == "show_all":
-            # All glyphs except for the decadal curves will be visible.
+            # All glyphs except for the decadal curves and yearly min/max markers will be visible.
             percentile_1090.visible = True
             percentile_2575.visible = True
             median.visible = True
@@ -415,8 +415,8 @@ try:
                 glyph.visible = True
             current_year_filler.visible = True
 
-            yearly_min_glyph.visible = True
-            yearly_max_glyph.visible = True
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
 
         if new_value.item == "last_5_years":
             # Hide decadal curves and make sure the last 5 years a visible.

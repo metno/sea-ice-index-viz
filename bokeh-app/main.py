@@ -604,7 +604,7 @@ try:
             for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
                 old_cds.data.update(new_cds.data)
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da, colours_dict)
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colours_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 

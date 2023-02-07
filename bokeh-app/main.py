@@ -63,8 +63,7 @@ color_scale_selector = Select(title="Color scale of yearly data:",
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
     # Download the data for the default index and area values.
-    ds = tk.download_dataset(index_selector.value, area_selector.value)
-    extracted_data = tk.extract_data(ds, index_selector.value)
+    extracted_data = tk.download_and_extract_data(index_selector.value, area_selector.value)
     da = extracted_data["da"]
 
     # Calculate the percentiles and median, and the minimum and maximum value. We have to convert the dataset to use an
@@ -553,8 +552,7 @@ try:
             area = area_selector.value
             reference_period = reference_period_selector.value
 
-            ds = tk.download_dataset(index, area)
-            extracted_data = tk.extract_data(ds, index)
+            extracted_data = tk.download_and_extract_data(index, area)
             da = extracted_data["da"]
 
             global da_converted

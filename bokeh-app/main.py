@@ -112,7 +112,12 @@ try:
     cds_median_2010s = clim_2010s_dict["cds_median"]
 
     # Calculate index of individual years.
+    data_years = tk.get_list_of_years(da)
+    colours_dict = tk.find_line_colours(data_years, color_scale_selector.value)
+
     cds_individual_years = tk.calculate_individual_years(da, da_converted)
+
+    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colours_dict)
 
     # Plot the figure and make sure that it uses all available space.
     plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
@@ -139,8 +144,6 @@ try:
     # Plot the median.
     median = plot.line(x="day_of_year", y="median", source=cds_median, line_width=2, color="dimgray", alpha=0.6)
 
-    legend_list.append(("Climatology", [percentile_1090, percentile_2575, median]))
-
     # Plot the minimum and maximum values.
     minimum = plot.line(x="day_of_year",
                         y="minimum",
@@ -158,11 +161,7 @@ try:
                         line_width=1.5,
                         line_dash=[4, 1])
 
-    legend_list.append(("Min/Max", [minimum, maximum]))
-
     # Plot decadal climatology.
-    data_years = tk.get_list_of_years(da)
-    colours_dict = tk.find_line_colours(data_years, color_scale_selector.value)
 
     curve_1980s = tk.decadal_curves(plot,
                                     cds_percentile_1980s,
@@ -170,15 +169,11 @@ try:
                                     colours_dict["1984"],
                                     colours_dict["1984"])
 
-    legend_list.append(("1980s", curve_1980s))
-
     curve_1990s = tk.decadal_curves(plot,
                                     cds_percentile_1990s,
                                     cds_median_1990s,
                                     colours_dict["1994"],
                                     colours_dict["1994"])
-
-    legend_list.append(("1990s", curve_1990s))
 
     curve_2000s = tk.decadal_curves(plot,
                                     cds_percentile_2000s,
@@ -186,20 +181,17 @@ try:
                                     colours_dict["2004"],
                                     colours_dict["2004"])
 
-    legend_list.append(("2000s", curve_2000s))
-
     curve_2010s = tk.decadal_curves(plot,
                                     cds_percentile_2010s,
                                     cds_median_2010s,
                                     colours_dict["2014"],
                                     colours_dict["2014"])
 
-    legend_list.append(("2010s", curve_2010s))
-
     # Plot the individual years.
     data_years = tk.get_list_of_years(da)
     colours_dict = tk.find_line_colours(data_years[:-1], color_scale_selector.value)
     individual_years_glyphs = []
+    individual_years_glyphs_legend_list = []
     cds_individual_years_list = list(cds_individual_years.values())
 
     # Plot lines for all years except current one.
@@ -209,8 +201,22 @@ try:
                                source=cds_individual_year,
                                line_width=2,
                                line_color=colours_dict[year])
-        legend_list.append((year, [line_glyph]))
         individual_years_glyphs.append(line_glyph)
+        individual_years_glyphs_legend_list.append((year, [line_glyph]))
+
+    yearly_max_glyph = plot.triangle(x="day_of_year",
+                                     y="index_value",
+                                     color="colour",
+                                     size=6,
+                                     source=cds_yearly_max,
+                                     visible=False)
+
+    yearly_min_glyph = plot.circle(x="day_of_year",
+                                   y="index_value",
+                                   color="colour",
+                                   size=6,
+                                   source=cds_yearly_min,
+                                   visible=False)
 
     # Plot the current year as two lines on top of each other (black and white dashed line).
     current_year_outline = plot.line(x="day_of_year",
@@ -226,8 +232,64 @@ try:
                                     line_dash=[4, 4],
                                     line_color="white")
 
-    legend_list.append((data_years[-1], [current_year_outline, current_year_filler]))
     individual_years_glyphs.append(current_year_outline)
+
+    # Add a hovertool to display the year, day of year, and index value of the individual years.
+    MAX_TOOLTIPS = """
+    <div>
+        <div>
+            <span style="font-size: 14px; font-weight: bold;">Yearly maximum</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Date:</span>
+            <span style="font-size: 12px;">@date</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Index:</span>
+            <span style="font-size: 12px;">@index_value{0.000}</span>
+            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Rank:</span>
+            <span style="font-size: 12px;">@rank</span>
+        </div>
+    </div>
+    """
+
+    MIN_TOOLTIPS = """
+    <div>
+        <div>
+            <span style="font-size: 14px; font-weight: bold;">Yearly minimum</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Date:</span>
+            <span style="font-size: 12px;">@date</span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Index:</span>
+            <span style="font-size: 12px;">@index_value{0.000}</span>
+            <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+        </div>
+        <div>
+            <span style="font-size: 12px; font-weight: bold">Rank:</span>
+            <span style="font-size: 12px;">@rank</span>
+        </div>
+    </div>
+    """
+
+    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS))
+
+    # Add labels and glyphs to legend list to get the desired order.
+    legend_list.append(("Climatology", [percentile_1090, percentile_2575, median]))
+    legend_list.append(("Min/Max", [minimum, maximum]))
+    legend_list.append(("Yearly min/max", [yearly_max_glyph, yearly_min_glyph]))
+    legend_list.extend([("1980s", curve_1980s),
+                        ("1990s", curve_1990s),
+                        ("2000s", curve_2000s),
+                        ("2010s", curve_2010s)])
+    legend_list.extend(individual_years_glyphs_legend_list)
+    legend_list.append((data_years[-1], [current_year_outline, current_year_filler]))
 
     # To plot legends for the individual years we need to split the list of legends into several sublists. If we
     # don't do this the list will be so long that it's out of frame. The number below is the maximum number of
@@ -337,11 +399,16 @@ try:
             fig.renderers[i].visible = true};
     
     } else if (this.item === "last_5_years") {
-        for (var i = 5; i < fig.renderers.length; i++) {
+        for (var i = 5; i < fig.renderers.length - 4; i++) {
             fig.renderers[i].visible=false};
     
-        for (var i = fig.renderers.length; i > (fig.renderers.length - 6); i--) {
-            fig.renderers[i-1].visible=true};
+        for (var i = fig.renderers.length - 8; i < (fig.renderers.length - 4); i++) {
+            // Make the 4 years before the current year visible.
+            fig.renderers[i].visible=true};
+            
+        for (var i = fig.renderers.length - 2; i < fig.renderers.length; i++) {
+            // Make the current year visible.
+            fig.renderers[i].visible=true};
     
     } else if (this.item === "2_years") {
         for (var i = 5; i < fig.renderers.length; i++) {
@@ -349,12 +416,12 @@ try:
             
             if (["NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"].includes(plot_area.value)) {
                 // Make years 2012 and 2020 visible for Northern Hemisphere.
-                fig.renderers[38].visible=true;
-                fig.renderers[46].visible=true;
+                fig.renderers[50].visible=true;
+                fig.renderers[58].visible=true;
             } else {
                 // Make years 2014 and 2017 visible for Southern Hemisphere.
-                fig.renderers[40].visible=true;
-                fig.renderers[43].visible=true};
+                fig.renderers[52].visible=true;
+                fig.renderers[55].visible=true};
             
     }
     ''')
@@ -480,6 +547,10 @@ try:
             for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
                 old_cds.data.update(new_cds.data)
 
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da, colours_dict)
+            cds_yearly_max.data.update(new_cds_yearly_max.data)
+            cds_yearly_min.data.update(new_cds_yearly_min.data)
+
             # Update the zoom to the new data using the current zoom state.
             update_zoom(zoom_state)
 
@@ -569,6 +640,10 @@ try:
 
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
                 individual_year_glyph.glyph.line_color = colours_dict[year]
+
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colours_dict)
+            cds_yearly_max.data.update(new_cds_yearly_max.data)
+            cds_yearly_min.data.update(new_cds_yearly_min.data)
 
 
     # Initialise the zoom state.

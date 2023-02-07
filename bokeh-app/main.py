@@ -388,48 +388,106 @@ try:
 
     plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
 
-    # The plot shortcuts use the following javascript callback code.
-    callback = CustomJS(args=dict(fig=plot, plot_area=area_selector), code='''
-    if (this.item === "erase_all") {
-        for (var i = 0; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible = false};
-            
-    } else if (this.item === "show_all") {
-        for (var i = 0; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible = true};
-    
-    } else if (this.item === "last_5_years") {
-        for (var i = 5; i < fig.renderers.length - 4; i++) {
-            fig.renderers[i].visible=false};
-    
-        for (var i = fig.renderers.length - 8; i < (fig.renderers.length - 4); i++) {
-            // Make the 4 years before the current year visible.
-            fig.renderers[i].visible=true};
-            
-        for (var i = fig.renderers.length - 2; i < fig.renderers.length; i++) {
-            // Make the current year visible.
-            fig.renderers[i].visible=true};
-    
-    } else if (this.item === "2_years") {
-        for (var i = 5; i < fig.renderers.length; i++) {
-            fig.renderers[i].visible=false};
-            
-            if (["NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"].includes(plot_area.value)) {
-                // Make years 2012 and 2020 visible for Northern Hemisphere.
-                fig.renderers[50].visible=true;
-                fig.renderers[58].visible=true;
-            } else {
-                // Make years 2014 and 2017 visible for Southern Hemisphere.
-                fig.renderers[52].visible=true;
-                fig.renderers[55].visible=true};
-            
-    }
-    ''')
+    def plot_shortcuts_callback(new_value):
+        if new_value.item == "erase_all":
+            # All glyphs will be hidden.
+            percentile_1090.visible = False
+            percentile_2575.visible = False
+            median.visible = False
+            minimum.visible = False
+            maximum.visible = False
+
+            for glyph in curve_1980s:
+                glyph.visible = False
+            for glyph in curve_1990s:
+                glyph.visible = False
+            for glyph in curve_2000s:
+                glyph.visible = False
+            for glyph in curve_2010s:
+                glyph.visible = False
+
+            for glyph in individual_years_glyphs:
+                glyph.visible = False
+            current_year_filler.visible = False
+
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
+
+        if new_value.item == "show_all":
+            # All glyphs except for the decadal curves will be visible.
+            percentile_1090.visible = True
+            percentile_2575.visible = True
+            median.visible = True
+            minimum.visible = True
+            maximum.visible = True
+
+            for glyph in curve_1980s:
+                glyph.visible = False
+            for glyph in curve_1990s:
+                glyph.visible = False
+            for glyph in curve_2000s:
+                glyph.visible = False
+            for glyph in curve_2010s:
+                glyph.visible = False
+
+            for glyph in individual_years_glyphs:
+                glyph.visible = True
+            current_year_filler.visible = True
+
+            yearly_min_glyph.visible = True
+            yearly_max_glyph.visible = True
+
+        if new_value.item == "last_5_years":
+            # Hide decadal curves and make sure the last 5 years a visible.
+            for glyph in curve_1980s:
+                glyph.visible = False
+            for glyph in curve_1990s:
+                glyph.visible = False
+            for glyph in curve_2000s:
+                glyph.visible = False
+            for glyph in curve_2010s:
+                glyph.visible = False
+
+            for glyph in individual_years_glyphs[:-4]:
+                glyph.visible = False
+            for glyph in individual_years_glyphs[-5:]:
+                glyph.visible = True
+            current_year_filler.visible = True
+
+        if new_value.item == "2_years":
+            # Hide decadal curves and all individual years, and show 2 hemisphere-dependent years.
+            for glyph in curve_1980s:
+                glyph.visible = False
+            for glyph in curve_1990s:
+                glyph.visible = False
+            for glyph in curve_2000s:
+                glyph.visible = False
+            for glyph in curve_2010s:
+                glyph.visible = False
+            for glyph in individual_years_glyphs:
+                glyph.visible = False
+            current_year_filler.visible = False
+
+            if area_selector.value in ("NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"):
+                # Show years 2012 and 2020 for the northern hemisphere.
+                year_2012_index = list(data_years).index("2012")
+                year_2020_index = list(data_years).index("2020")
+
+                individual_years_glyphs[year_2012_index].visible = True
+                individual_years_glyphs[year_2020_index].visible = True
+
+            else:
+                # Show years 2014 and 2022 for the southern hemisphere.
+                year_2014_index = list(data_years).index("2014")
+                year_2022_index = list(data_years).index("2022")
+
+                individual_years_glyphs[year_2014_index].visible = True
+                individual_years_glyphs[year_2022_index].visible = True
+
 
     # Make sure that callback code runs when user clicks on one of the choices.
-    plot_shortcuts.js_on_event("menu_item_click", callback)
+    plot_shortcuts.on_click(plot_shortcuts_callback)
 
-    # The plot shortcuts use the following javascript callback code.
     label_callback = CustomJS(args=dict(info_label=info_label,
                                         refper=reference_period_selector,
                                         first_year=first_year,
@@ -472,7 +530,6 @@ try:
     # place
     percentile_1090.js_on_change("visible", label_callback)
     minimum.js_on_change("visible", label_callback)
-
 
     # Layout
     inputs = column(index_selector,

@@ -384,14 +384,11 @@ try:
             minimum.visible = False
             maximum.visible = False
 
-            for glyph in curve_1980s:
-                glyph.visible = False
-            for glyph in curve_1990s:
-                glyph.visible = False
-            for glyph in curve_2000s:
-                glyph.visible = False
-            for glyph in curve_2010s:
-                glyph.visible = False
+            for i in range(3):
+                curve_1980s[i].visible = False
+                curve_1990s[i].visible = False
+                curve_2000s[i].visible = False
+                curve_2010s[i].visible = False
 
             for glyph in individual_years_glyphs:
                 glyph.visible = False
@@ -408,14 +405,11 @@ try:
             minimum.visible = True
             maximum.visible = True
 
-            for glyph in curve_1980s:
-                glyph.visible = False
-            for glyph in curve_1990s:
-                glyph.visible = False
-            for glyph in curve_2000s:
-                glyph.visible = False
-            for glyph in curve_2010s:
-                glyph.visible = False
+            for i in range(3):
+                curve_1980s[i].visible = False
+                curve_1990s[i].visible = False
+                curve_2000s[i].visible = False
+                curve_2010s[i].visible = False
 
             for glyph in individual_years_glyphs:
                 glyph.visible = True
@@ -426,14 +420,11 @@ try:
 
         if new_value.item == "last_5_years":
             # Hide decadal curves and make sure the last 5 years a visible.
-            for glyph in curve_1980s:
-                glyph.visible = False
-            for glyph in curve_1990s:
-                glyph.visible = False
-            for glyph in curve_2000s:
-                glyph.visible = False
-            for glyph in curve_2010s:
-                glyph.visible = False
+            for i in range(3):
+                curve_1980s[i].visible = False
+                curve_1990s[i].visible = False
+                curve_2000s[i].visible = False
+                curve_2010s[i].visible = False
 
             for glyph in individual_years_glyphs[:-4]:
                 glyph.visible = False
@@ -443,14 +434,12 @@ try:
 
         if new_value.item == "2_years":
             # Hide decadal curves and all individual years, and show 2 hemisphere-dependent years.
-            for glyph in curve_1980s:
-                glyph.visible = False
-            for glyph in curve_1990s:
-                glyph.visible = False
-            for glyph in curve_2000s:
-                glyph.visible = False
-            for glyph in curve_2010s:
-                glyph.visible = False
+            for i in range(3):
+                curve_1980s[i].visible = False
+                curve_1990s[i].visible = False
+                curve_2000s[i].visible = False
+                curve_2010s[i].visible = False
+
             for glyph in individual_years_glyphs:
                 glyph.visible = False
             current_year_filler.visible = False

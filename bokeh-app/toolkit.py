@@ -143,10 +143,12 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
-def find_yearly_min_max(da_converted, fill_colours_dict):
+def find_yearly_min_max(da_converted, fill_colors_dict):
+    # Find the years we have data for, except the current one. Select the data from those years and group it by year.
     years = get_list_of_years(da_converted)[:-1]
     da_sliced_and_grouped = da_converted.sel(time=slice(years[0], years[-1])).groupby("time.year")
 
+    # Find the yearly max/min date, day of year, and index value.
     yearly_max_date = da_sliced_and_grouped.apply(lambda x: x.idxmax(dim="time"))
     yearly_max_doy = da_converted.sel(time=yearly_max_date).time.dt.dayofyear
     yearly_max_index_value = da_converted.sel(time=yearly_max_date)
@@ -155,22 +157,25 @@ def find_yearly_min_max(da_converted, fill_colours_dict):
     yearly_min_doy = da_converted.sel(time=yearly_min_date).time.dt.dayofyear
     yearly_min_index_value = da_converted.sel(time=yearly_min_date)
 
-    fill_colours = [fill_colours_dict[year] for year in years]
+    # Use the same colours as the lines of the individual years.
+    colors = [fill_colors_dict[year] for year in years]
 
+    # Convert the max/min date to a string for use in hovertool display.
     hovertool_max_date = yearly_max_date.dt.strftime("%Y-%m-%d")
     hovertool_min_date = yearly_min_date.dt.strftime("%Y-%m-%d")
 
+    # Find the rank of the max/min values. Reverse the max rank such that the highest value has a rank of 1.
     yearly_max_rank = (-yearly_max_index_value).rank("year")
     yearly_min_rank = yearly_min_index_value.rank("year")
 
     cds_yearly_max = ColumnDataSource({"day_of_year": yearly_max_doy.values,
                                        "index_value": yearly_max_index_value.values,
-                                       "colour": fill_colours,
+                                       "color": colors,
                                        "date": hovertool_max_date.values,
                                        "rank": yearly_max_rank.values})
     cds_yearly_min = ColumnDataSource({"day_of_year": yearly_min_doy.values,
                                        "index_value": yearly_min_index_value.values,
-                                       "colour": fill_colours,
+                                       "color": colors,
                                        "date": hovertool_min_date.values,
                                        "rank": yearly_min_rank.values})
 
@@ -182,33 +187,34 @@ def find_nice_ylimit(da):
     return 1.10 * da.max().values
 
 
-def decade_colour_dict(decade, colour):
+def decade_color_dict(decade, color):
+    # Don't use the full breadth of the colormap, only go up till middle (halfway) to avoid the light colors.
     normalisation = np.linspace(0, 0.5, 10)
-    normalised_colour = [matplotlib.colors.to_hex(colour) for colour in colour(normalisation)]
+    normalised_color = [matplotlib.colors.to_hex(color) for color in color(normalisation)]
     years_in_decade = np.arange(decade, decade + 10, 1).astype(str)
 
-    return {year: year_colour for year, year_colour in zip(years_in_decade, normalised_colour)}
+    return {year: year_color for year, year_color in zip(years_in_decade, normalised_color)}
 
 
-def find_line_colours(years, colour):
+def find_line_colors(years, color):
     """Find a colors for the individual years."""
 
-    if colour == "decadal":
+    if color == "decadal":
         decades = [1970, 1980, 1990, 2000, 2010, 2020]
-        colours = [matplotlib.cm.Purples_r,
+        colors = [matplotlib.cm.Purples_r,
                    matplotlib.cm.Purples_r,
                    matplotlib.cm.Blues_r,
                    matplotlib.cm.Greens_r,
                    matplotlib.cm.Reds_r,
                    matplotlib.cm.Wistia_r]
 
-        full_colour_dict = {}
+        full_color_dict = {}
 
-        for decade, colour in zip(decades, colours):
-            decade_dict = decade_colour_dict(decade, colour)
-            full_colour_dict.update(decade_dict)
+        for decade, color in zip(decades, colors):
+            decade_dict = decade_color_dict(decade, color)
+            full_color_dict.update(decade_dict)
 
-        colour_dict = {year: full_colour_dict[year] for year in years}
+        color_dict = {year: full_color_dict[year] for year in years}
 
     else:
         translation_dictionary = {"viridis": matplotlib.cm.viridis,
@@ -217,36 +223,8 @@ def find_line_colours(years, colour):
                                   "batlowS": cm.batlowS}
 
         normalised = np.linspace(0, 1, len(years))
-        colours = translation_dictionary[colour](normalised)
-        colours_in_hex = [matplotlib.colors.to_hex(colour) for colour in colours]
-        colour_dict = {year: colour for year, colour in zip(years, colours_in_hex)}
+        colors = translation_dictionary[color](normalised)
+        colors_in_hex = [matplotlib.colors.to_hex(color) for color in colors]
+        color_dict = {year: color for year, color in zip(years, colors_in_hex)}
 
-    return colour_dict
-
-
-def decadal_curves(plot, percentile_source, median_source, fill_colour, line_colour):
-    percentile = plot.varea(x="day_of_year",
-                            y1="minimum",
-                            y2="maximum",
-                            source=percentile_source,
-                            fill_alpha=0.5,
-                            fill_color=fill_colour,
-                            visible=False)
-
-    median_outline = plot.line(x="day_of_year",
-                               y="median",
-                               source=median_source,
-                               line_width=2.2,
-                               color="black",
-                               alpha=0.6,
-                               visible=False)
-
-    median = plot.line(x="day_of_year",
-                       y="median",
-                       source=median_source,
-                       line_width=2,
-                       color=line_colour,
-                       alpha=0.6,
-                       visible=False)
-
-    return [percentile, median_outline, median]
+    return color_dict

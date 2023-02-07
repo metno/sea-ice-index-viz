@@ -146,6 +146,40 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
+def find_yearly_min_max(da_converted, fill_colours_dict):
+    years = get_list_of_years(da_converted)[:-1]
+    da_sliced_and_grouped = da_converted.sel(time=slice(years[0], years[-1])).groupby("time.year")
+
+    yearly_max_date = da_sliced_and_grouped.apply(lambda x: x.idxmax(dim="time"))
+    yearly_max_doy = da_converted.sel(time=yearly_max_date).time.dt.dayofyear
+    yearly_max_index_value = da_converted.sel(time=yearly_max_date)
+
+    yearly_min_date = da_sliced_and_grouped.apply(lambda x: x.idxmin(dim="time"))
+    yearly_min_doy = da_converted.sel(time=yearly_min_date).time.dt.dayofyear
+    yearly_min_index_value = da_converted.sel(time=yearly_min_date)
+
+    fill_colours = [fill_colours_dict[year] for year in years]
+
+    hovertool_max_date = yearly_max_date.dt.strftime("%Y-%m-%d")
+    hovertool_min_date = yearly_min_date.dt.strftime("%Y-%m-%d")
+
+    yearly_max_rank = (-yearly_max_index_value).rank("year")
+    yearly_min_rank = yearly_min_index_value.rank("year")
+
+    cds_yearly_max = ColumnDataSource({"day_of_year": yearly_max_doy.values,
+                                       "index_value": yearly_max_index_value.values,
+                                       "colour": fill_colours,
+                                       "date": hovertool_max_date.values,
+                                       "rank": yearly_max_rank.values})
+    cds_yearly_min = ColumnDataSource({"day_of_year": yearly_min_doy.values,
+                                       "index_value": yearly_min_index_value.values,
+                                       "colour": fill_colours,
+                                       "date": hovertool_min_date.values,
+                                       "rank": yearly_min_rank.values})
+
+    return cds_yearly_max, cds_yearly_min
+
+
 def find_nice_ylimit(da):
     """Find an upper y-limit with 10 percent added to the maximum value of the data."""
     return 1.10 * da.max().values

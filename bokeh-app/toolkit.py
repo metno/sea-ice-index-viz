@@ -5,7 +5,7 @@ import cmcrameri.cm as cm
 import matplotlib
 
 
-def download_dataset(index, area):
+def download_and_extract_data(index, area):
     url_prefix = "https://thredds.met.no/thredds/dodsC"
 
     sie_dict = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
@@ -43,11 +43,8 @@ def download_dataset(index, area):
                 "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sia_daily.nc"}
     
     url_dict = {"sie": sie_dict, "sia": sia_dict}
+    ds = xr.open_dataset(url_dict[index][area], cache=False)
 
-    return xr.open_dataset(url_dict[index][area], cache=False)
-
-
-def extract_data(ds, index):
     da = ds[index]
     title = ds.title
     long_name = da.attrs["long_name"]

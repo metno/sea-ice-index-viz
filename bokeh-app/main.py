@@ -619,7 +619,7 @@ try:
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
             # Update the zoom to the new data using the current zoom state.
-            update_zoom(new_zoom=None)
+            update_zoom(zoom_state)
 
             # Update the plot title and x-axis label.
             plot.title.text = extracted_data["title"]

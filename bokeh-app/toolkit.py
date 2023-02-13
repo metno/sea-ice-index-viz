@@ -3,6 +3,7 @@ from bokeh.models import ColumnDataSource
 import numpy as np
 import cmcrameri.cm as cm
 import matplotlib
+import itertools
 
 
 def download_and_extract_data(index, area):
@@ -215,6 +216,34 @@ def find_line_colors(years, color):
             full_color_dict.update(decade_dict)
 
         color_dict = {year: full_color_dict[year] for year in years}
+
+    elif color == "cyclic_8":
+        colors = ["#ffe119", "#4363d8", "#f58231", "#dcbeff", "#800000", "#000075", "#a9a9a9", "#000000"]
+
+        cyclic_colors = itertools.cycle(colors)
+        color_dict = {year: next(cyclic_colors) for year in years}
+
+    elif color == "cyclic_17":
+        colors = ["#e6194B",
+                  "#3cb44b",
+                  "#ffe119",
+                  "#4363d8",
+                  "#f58231",
+                  "#42d4f4",
+                  "#f032e6",
+                  "#fabed4",
+                  "#469990",
+                  "#dcbeff",
+                  "#9A6324",
+                  "#fffac8",
+                  "#800000",
+                  "#aaffc3",
+                  "#000075",
+                  "#a9a9a9",
+                  "#000000"]
+
+        cyclic_colors = itertools.cycle(colors)
+        color_dict = {year: next(cyclic_colors) for year in years}
 
     else:
         translation_dictionary = {"viridis": matplotlib.cm.viridis,

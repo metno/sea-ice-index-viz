@@ -51,14 +51,24 @@ zoom_shortcuts = Dropdown(label="Zoom shortcuts:",
                                 ("Min extent", "min_extent"),
                                 ("Max extent", "max_extent")])
 
+color_options = {
+    "Sequential colour maps": [
+        ("viridis", "Viridis"),
+        ("plasma", "Plasma"),
+        ("batlow", "Batlow"),
+        ("decadal", "Custom decadal"),
+    ],
+    "Non-sequential colour maps": [
+        ("batlowS", "BatlowS"),
+        ("cyclic_8", "8 repeating colours"),
+        ("cyclic_17", "17 repeating colours"),
+    ]
+}
+
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
 color_scale_selector = Select(title="Color scale of yearly data:",
                               value="viridis",
-                              options=[("viridis", "Viridis"),
-                                       ("plasma", "Plasma"),
-                                       ("batlow", "Batlow"),
-                                       ("batlowS", "BatlowS"),
-                                       ("decadal", "Custom decadal")])
+                              options=color_options)
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:

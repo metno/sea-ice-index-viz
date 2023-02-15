@@ -1,74 +1,78 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import AdaptiveTicker, Select, HoverTool, Range1d, Legend, CustomJS, Paragraph, Dropdown, Label
-from bokeh.layouts import column, row
+from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, CustomJS, Paragraph, Label
 import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
 
 # Add dropdown menus for index and area selection.
-index_selector = Select(title="Index:", value="sie",
-                        options=[("sie", "Sea Ice Extent"), ("sia", "Sea Ice Area")])
+index_selector = pn.widgets.Select(name="Index:", options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}, value="sie")
 
-area_options = {
-    "Global": [
-        ("GLOBAL", "Global"),
-        ("NH", "Northern Hemisphere"),
-        ("SH", "Southern Hemisphere"),
-    ],
-    "Northern Hemisphere Regions": [
-        ("bar", "Barents Sea"),
-        ("beau", "Beaufort Sea"),
-        ("chuk", "Chukchi Sea"),
-        ("ess", "East Siberian Sea"),
-        ("fram", "Fram Strait-NP"),
-        ("kara", "Kara Sea"),
-        ("lap", "Laptev Sea"),
-        ("sval", "Svalbard-NIS"),
-    ],
-    "Southern Hemisphere Regions": [
-        ("bell", "Amundsen-Bellingshausen Sea"),
-        ("indi", "Indian Ocean"),
-        ("ross", "Ross Sea"),
-        ("wedd", "Weddell Sea"),
-        ("wpac", "Western Pacific Ocean"),
-    ]
+area_groups = {
+    "Global": {
+        "Global": "GLOBAL",
+        "Northern Hemisphere": "NH",
+        "Southern Hemisphere": "SH",
+    },
+    "Northern Hemisphere Regions": {
+        "Barents Sea": "bar",
+        "Beaufort Sea": "beau",
+        "Chukchi Sea": "chuk",
+        "East Siberian Sea": "ess",
+        "Fram Strait-NP": "fram",
+        "Kara Sea": "kara",
+        "Laptev Sea": "lap",
+        "Svalbard-NIS": "sval",
+    },
+    "Southern Hemisphere Regions": {
+        "Amundsen-Bellingshausen Sea": "bell",
+        "Indian Ocean": "indi",
+        "Ross Sea": "ross",
+        "Weddell Sea": "wedd",
+        "Western Pacific Ocean": "wpac",
+    }
 }
 
-area_selector = Select(title="Area:", value="NH", options=area_options)
+area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="NH")
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots.
-reference_period_selector = Select(title="Reference period of percentiles and median:",
-                                   value="1981-2010",
-                                   options=[("1981-2010", "1981-2010"),
-                                            ("1991-2020", "1991-2020")])
+reference_period_selector = pn.widgets.Select(name="Reference period of percentiles and median:",
+                                              options=["1981-2010", "1991-2020"],
+                                              value="1981-2010")
+
+# Create a dropdown button with plot shortcuts.
+plot_shortcuts = pn.widgets.MenuButton(name="Plot shortcuts", items=[("Erase all", "erase_all"),
+                                                                     ("Show all", "show_all"),
+                                                                     ("Last 5 years", "last_5_years"),
+                                                                     ("2 years", "2_years")])
 
 # Add a dropdown menu for different preselected zoom levels.
-zoom_shortcuts = Dropdown(label="Zoom shortcuts:",
-                          menu=[("Year", "year"),
-                                ("Two months centred on latest observation", "zoom"),
-                                ("Min extent", "min_extent"),
-                                ("Max extent", "max_extent")])
+zoom_shortcuts = pn.widgets.MenuButton(name="Zoom shortcuts:",
+                                       items=[("Year", "year"),
+                                              ("Two months centred on latest observation", "zoom"),
+                                              ("Min extent", "min_extent"),
+                                              ("Max extent", "max_extent")])
 
-color_options = {
-    "Sequential colour maps": [
-        ("viridis", "Viridis"),
-        ("plasma", "Plasma"),
-        ("batlow", "Batlow"),
-        ("decadal", "Custom decadal"),
-    ],
-    "Non-sequential colour maps": [
-        ("batlowS", "BatlowS"),
-        ("cyclic_8", "8 repeating colours"),
-        ("cyclic_17", "17 repeating colours"),
-    ]
-}
+# Initialise the zoom shortcut state.
+zoom_shortcuts.clicked = "year"
 
 # Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
-color_scale_selector = Select(title="Color scale of yearly data:",
-                              value="viridis",
-                              options=color_options)
+color_groups = {
+    "Sequential colour maps": {
+        "Viridis": "viridis",
+        "Plasma": "plasma",
+        "Batlow": "batlow",
+        "Custom decadal": "decadal",
+    },
+    "Non-sequential colour maps": {
+        "BatlowS": "batlowS",
+        "8 repeating colours": "cyclic_8",
+        "17 repeating colours": "cyclic_17",
+    }
+}
+
+color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:", groups=color_groups, value="viridis")
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
@@ -406,16 +410,9 @@ try:
 
     plot.add_layout(info_label)
 
-    # Create a dropdown button with plot shortcuts.
-    menu = [("Erase all", "erase_all"),
-            ("Show all", "show_all"),
-            ("Last 5 years", "last_5_years"),
-            ("2 years", "2_years")]
-
-    plot_shortcuts = Dropdown(label="Plot shortcuts", menu=menu)
-
-    def plot_shortcuts_callback(new_value):
-        if new_value.item == "erase_all":
+    # Create a callback for plot shortcuts to hide and show different elements of the plot.
+    def plot_shortcuts_callback(event):
+        if event.new == "erase_all":
             # All glyphs will be hidden.
             percentile_1090_glyph.visible = False
             percentile_2575_glyph.visible = False
@@ -436,7 +433,7 @@ try:
             yearly_min_glyph.visible = False
             yearly_max_glyph.visible = False
 
-        if new_value.item == "show_all":
+        if event.new == "show_all":
             # All glyphs except for the decadal curves and yearly min/max markers will be visible.
             percentile_1090_glyph.visible = True
             percentile_2575_glyph.visible = True
@@ -457,7 +454,7 @@ try:
             yearly_min_glyph.visible = False
             yearly_max_glyph.visible = False
 
-        if new_value.item == "last_5_years":
+        if event.new == "last_5_years":
             # Hide decadal curves and make sure the last 5 years a visible.
             for i in range(3):
                 curve_1980s_glyph_list[i].visible = False
@@ -471,7 +468,7 @@ try:
                 glyph.visible = True
             current_year_filler.visible = True
 
-        if new_value.item == "2_years":
+        if event.new == "2_years":
             # Hide decadal curves and all individual years, and show 2 hemisphere-dependent years.
             for i in range(3):
                 curve_1980s_glyph_list[i].visible = False
@@ -501,24 +498,18 @@ try:
 
 
     # Make sure that callback code runs when user clicks on one of the choices.
-    plot_shortcuts.on_click(plot_shortcuts_callback)
+    plot_shortcuts.param.watch(plot_shortcuts_callback, "clicked", onlychanged=False)
 
     # Create a label callback to update the bottom label so that the text about the median and percentiles,
     # and the min/max lines is only shown when they are visible, respectively.
-    label_callback = CustomJS(args=dict(info_label=info_label,
-                                        refper=reference_period_selector,
-                                        first_year=first_year,
-                                        second_to_last_year=second_to_last_year,
-                                        last_date_string=last_date_string,
-                                        climatology=percentile_1090_glyph,
-                                        min_max=min_line_glyph), code='''
+    label_callback_js = '''
     // Initialise an empty string
     let label_text = ``;
     
     if (climatology.visible === true) {
         label_text = label_text
                      + `Median and percentiles (25-75% and 10-90%) for `
-                     + `${refper.value.slice(0,4)}-${refper.value.slice(5)}`;
+                     + `${refper.slice(0,4)}-${refper.slice(5)}`;
 
         if (min_max.visible === false) {
             // When the min/max lines are not visible add a newline
@@ -541,7 +532,15 @@ try:
                  + `Last data point: ${last_date_string}`;
     
     info_label.text = label_text
-    ''')
+    '''
+
+    label_callback = CustomJS(args=dict(info_label=info_label,
+                                        refper=reference_period_selector.value,
+                                        first_year=first_year,
+                                        second_to_last_year=second_to_last_year,
+                                        last_date_string=last_date_string,
+                                        climatology=percentile_1090_glyph,
+                                        min_max=min_line_glyph), code=label_callback_js)
 
     # Check whether a change in the visibility state of the median and percentiles, and the min/max values has taken
     # place and run the callback function if so.
@@ -549,42 +548,40 @@ try:
     min_line_glyph.js_on_change("visible", label_callback)
 
     # Define the layout.
-    inputs = column(index_selector,
-                    area_selector,
-                    reference_period_selector,
-                    plot_shortcuts,
-                    zoom_shortcuts,
-                    color_scale_selector)
-    row1 = row(plot, inputs)
+    inputs = pn.Column(index_selector,
+                       area_selector,
+                       reference_period_selector,
+                       plot_shortcuts,
+                       zoom_shortcuts,
+                       color_scale_selector,
+                       sizing_mode="fixed")
+    row1 = pn.Row(pn.pane.Bokeh(plot, sizing_mode="stretch_both"), inputs)
 
     # Create a label to signify that the tool is WIP.
     text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
-    column1 = column(text, row1)
-    column1.sizing_mode = "stretch_both"
+    column1 = pn.Column(text, row1)
 
 
-    def update_reference_period(attr, old, new):
-        # Function that is used to update the climatology when the reference period is changed.
-        with pn.param.set_values(bokeh_pane, loading=True):
-            reference_period = new
+    def update_reference_period(event):
+        with pn.param.set_values(final_pane, loading=True):
+            # Function that is used to update the climatology when the reference period is changed.
+            reference_period = event.new
 
             start_year = reference_period[:4]
             end_year = reference_period[5:]
             percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
-                                                                                                          end_year)))
+                                                                                                      end_year)))
 
             cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
             cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
             cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
 
 
-    def update_data(attr, old, new):
-        # Function that is used to update the plots when the index or area selections are changed.
-        with pn.param.set_values(bokeh_pane, loading=True):
+    def update_data(event):
+        with pn.param.set_values(final_pane, loading=True):
             # Update plot with new values from selectors.
             index = index_selector.value
             area = area_selector.value
-            reference_period = reference_period_selector.value
 
             # Download and extract new data.
             extracted_data = tk.download_and_extract_data(index, area)
@@ -596,7 +593,7 @@ try:
             da_converted = tk.convert_and_interpolate_calendar(da)
 
             # Recalculate and update the climatology plots (percentiles and median).
-            update_reference_period(attr=None, old=None, new=reference_period)
+            reference_period_selector.param.trigger("value")
 
             # Update min/max lines.
             min_max_dict = tk.calculate_min_max(da_converted)
@@ -629,7 +626,7 @@ try:
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
             # Update the zoom to the new data using the current zoom state.
-            update_zoom(zoom_state)
+            zoom_shortcuts.param.trigger("clicked")
 
             # Update the plot title and x-axis label.
             plot.title.text = extracted_data["title"]
@@ -643,16 +640,16 @@ try:
             doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
 
 
-    def update_zoom(new_zoom):
+    def update_zoom(event):
         # The callback function that updates the zoom level when the zoom shortcut is used.
-        with pn.param.set_values(bokeh_pane, loading=True):
-            if new_zoom == 'year':
+        with pn.param.set_values(final_pane, loading=True):
+            if event.new == 'year':
                 plot.x_range.start = 1
                 plot.x_range.end = 366
                 plot.y_range.start = 0
                 plot.y_range.end = tk.find_nice_ylimit(da_converted)
 
-            elif new_zoom == 'zoom':
+            elif event.new == 'zoom':
                 # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan
                 # and upper bound is not more than 31st of Dec.
                 x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
@@ -661,14 +658,14 @@ try:
                 plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
                 set_zoom_yrange(padding_frac=0.05)
 
-            elif new_zoom == 'min_extent':
+            elif event.new == 'min_extent':
                 # Plot two months around the day of year with the lowest average minimum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
                 plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
                 set_zoom_yrange(padding_frac=0.05)
 
-            elif new_zoom == 'max_extent':
+            elif event.new == 'max_extent':
                 # Plot two months around the day of year with the highest average maximum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
@@ -701,17 +698,11 @@ try:
         plot.y_range.start = (data_min_value - padding if data_min_value - padding > 0 else 0)
         plot.y_range.end = data_max_value + padding
 
-    def zoom_wrapper(event):
-        # Wrap the zoom update function in order to use it with on_click from the Dropdown widget. Update the zoom state
-        # value.
-        global zoom_state
-        zoom_state = event.item
-        update_zoom(zoom_state)
 
-    def update_line_color(attr, old, new):
+    def update_line_color(event):
         # Function that updates the colors of glyphs.
-        with pn.param.set_values(bokeh_pane, loading=True):
-            color = color_scale_selector.value
+        with pn.param.set_values(final_pane, loading=True):
+            color = event.new
             data_years = list(cds_individual_years.keys())
             colors_dict = tk.find_line_colors(data_years[:-1], color)
 
@@ -731,19 +722,22 @@ try:
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-
-    # Initialise the zoom state.
-    zoom_state = 'year'
-
     # Run callbacks when widget values change.
-    index_selector.on_change('value', update_data)
-    area_selector.on_change('value', update_data)
-    reference_period_selector.on_change('value', update_reference_period)
-    reference_period_selector.js_on_change('value', label_callback)
-    zoom_shortcuts.on_click(zoom_wrapper)
-    color_scale_selector.on_change('value', update_line_color)
+    index_selector.param.watch(update_data, "value")
+    area_selector.param.watch(update_data, "value")
+    reference_period_selector.param.watch(update_reference_period, "value")
+    reference_period_selector.jscallback(value=label_callback_js,
+                                         args={"info_label": info_label,
+                                               "refper": reference_period_selector.value,
+                                               "first_year": first_year,
+                                               "second_to_last_year": second_to_last_year,
+                                               "last_date_string": last_date_string,
+                                               "climatology": percentile_1090_glyph,
+                                               "min_max": min_line_glyph})
+    zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)
+    color_scale_selector.param.watch(update_line_color, "value")
 
-    bokeh_pane = pn.pane.Bokeh(column1).servable()
+    final_pane = column1.servable()
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.

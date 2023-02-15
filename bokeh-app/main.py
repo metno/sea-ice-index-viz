@@ -226,12 +226,12 @@ try:
         individual_years_glyphs_legend_list.append((year, [line_glyph]))
 
     # Plot the yearly max and min values as triangles and circles, respectively.
-    yearly_max_glyph = plot.triangle(x="day_of_year",
-                                     y="index_value",
-                                     color="color",
-                                     size=6,
-                                     source=cds_yearly_max,
-                                     visible=False)
+    yearly_max_glyph = plot.circle(x="day_of_year",
+                                   y="index_value",
+                                   color="color",
+                                   size=6,
+                                   source=cds_yearly_max,
+                                   visible=False)
 
     yearly_min_glyph = plot.circle(x="day_of_year",
                                    y="index_value",

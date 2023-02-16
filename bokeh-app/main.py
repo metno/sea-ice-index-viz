@@ -438,6 +438,8 @@ try:
 
             for glyph in individual_years_glyphs:
                 glyph.visible = False
+
+            current_year_outline.visible = False
             current_year_filler.visible = False
 
             yearly_min_glyph.visible = False
@@ -459,36 +461,63 @@ try:
 
             for glyph in individual_years_glyphs:
                 glyph.visible = True
+
+            current_year_outline.visible = True
             current_year_filler.visible = True
 
             yearly_min_glyph.visible = False
             yearly_max_glyph.visible = False
 
         if event.new == "last_5_years":
-            # Hide decadal curves and make sure the last 5 years a visible.
+            # Show: reference period climatology, current year and the 5 preceding years.
+            # Hide: decadal curves, yearly min/max dots, all other individual years.
+            percentile_1090_glyph.visible = True
+            percentile_2575_glyph.visible = True
+            median_glyph.visible = True
+            min_line_glyph.visible = True
+            max_line_glyph.visible = True
+
             for i in range(3):
                 curve_1980s_glyph_list[i].visible = False
                 curve_1990s_glyph_list[i].visible = False
                 curve_2000s_glyph_list[i].visible = False
                 curve_2010s_glyph_list[i].visible = False
 
-            for glyph in individual_years_glyphs[:-4]:
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
+
+            for glyph in individual_years_glyphs[:-5]:
                 glyph.visible = False
-            for glyph in individual_years_glyphs[-5:]:
+            for glyph in individual_years_glyphs[-6:]:
                 glyph.visible = True
+
+            current_year_outline.visible = True
             current_year_filler.visible = True
 
         if event.new == "2_years":
-            # Hide decadal curves and all individual years, and show 2 hemisphere-dependent years.
+            # Show: reference period climatology, current year, and 2 hemisphere-dependent years.
+            # Hide: decadal curves and yearly min/max dots.
+
+            percentile_1090_glyph.visible = True
+            percentile_2575_glyph.visible = True
+            median_glyph.visible = True
+            min_line_glyph.visible = True
+            max_line_glyph.visible = True
+
             for i in range(3):
                 curve_1980s_glyph_list[i].visible = False
                 curve_1990s_glyph_list[i].visible = False
                 curve_2000s_glyph_list[i].visible = False
                 curve_2010s_glyph_list[i].visible = False
 
+            yearly_min_glyph.visible = False
+            yearly_max_glyph.visible = False
+
             for glyph in individual_years_glyphs:
                 glyph.visible = False
-            current_year_filler.visible = False
+
+            current_year_outline.visible = True
+            current_year_filler.visible = True
 
             if area_selector.value in ("NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"):
                 # Show years 2012 and 2020 for the northern hemisphere.

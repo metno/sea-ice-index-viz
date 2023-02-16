@@ -6,9 +6,11 @@ import toolkit as tk
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
 
-# Add dropdown menus for index and area selection.
+# Add dropdown menu for index selection, and sync to url parameter.
 index_selector = pn.widgets.Select(name="Index:", options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}, value="sie")
+pn.state.location.sync(index_selector, {"value": "index"})
 
+# Add dropdown menu for area selection, and sync to url parameter.
 area_groups = {
     "Global": {
         "Global": "GLOBAL",
@@ -35,29 +37,36 @@ area_groups = {
 }
 
 area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="NH")
+pn.state.location.sync(area_selector, {"value": "area"})
 
-# Add a dropdown menu for selecting the reference period of the percentile and median plots.
+# Add a dropdown menu for selecting the reference period of the percentile and median plots, and sync to url parameter.
 reference_period_selector = pn.widgets.Select(name="Reference period of percentiles and median:",
                                               options=["1981-2010", "1991-2020"],
                                               value="1981-2010")
+pn.state.location.sync(reference_period_selector, {"value": "ref_period"})
 
-# Create a dropdown button with plot shortcuts.
+# Create a dropdown button with plot shortcuts, and sync to url parameter.
 plot_shortcuts = pn.widgets.MenuButton(name="Plot shortcuts", items=[("Erase all", "erase_all"),
                                                                      ("Show all", "show_all"),
                                                                      ("Last 5 years", "last_5_years"),
                                                                      ("2 years", "2_years")])
+pn.state.location.sync(plot_shortcuts, {"clicked": "shortcut"})
 
 # Add a dropdown menu for different preselected zoom levels.
 zoom_shortcuts = pn.widgets.MenuButton(name="Zoom shortcuts:",
                                        items=[("Year", "year"),
-                                              ("Two months centred on latest observation", "zoom"),
+                                              ("Two months centred on latest observation", "current"),
                                               ("Min extent", "min_extent"),
                                               ("Max extent", "max_extent")])
 
 # Initialise the zoom shortcut state.
 zoom_shortcuts.clicked = "year"
 
-# Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years.
+# Sync to url parameter.
+pn.state.location.sync(zoom_shortcuts, {"clicked": "zoom"})
+
+# Add a dropdown menu for selecting the colorscale that will be used for plotting the individual years,
+# and sync parameter to url.
 color_groups = {
     "Sequential colour maps": {
         "Viridis": "viridis",
@@ -73,6 +82,7 @@ color_groups = {
 }
 
 color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:", groups=color_groups, value="viridis")
+pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
@@ -649,7 +659,7 @@ try:
                 plot.y_range.start = 0
                 plot.y_range.end = tk.find_nice_ylimit(da_converted)
 
-            elif event.new == 'zoom':
+            elif event.new == 'current':
                 # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan
                 # and upper bound is not more than 31st of Dec.
                 x_range_start = current_year_outline.data_source.data['day_of_year'][-1] - 30
@@ -738,6 +748,10 @@ try:
     color_scale_selector.param.watch(update_line_color, "value")
 
     final_pane = column1.servable()
+
+    # Make sure plot shortcut and zoom get set correctly if url parameters are provided.
+    plot_shortcuts.param.trigger("clicked")
+    zoom_shortcuts.param.trigger("clicked")
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.

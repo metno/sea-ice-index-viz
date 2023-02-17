@@ -1,10 +1,21 @@
 import panel as pn
 from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, CustomJS, Paragraph, Label
+import logging
 import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
+
+
+def exception_handler(ex):
+    # Function used to handle exceptions by showing an error message to the user.
+    logging.error("Error", exc_info=ex)
+    pn.state.notifications.error(f'{ex}')
+
+
+# Handle exceptions.
+pn.extension(exception_handler=exception_handler, notifications=True)
 
 # Add dropdown menu for index selection, and sync to url parameter.
 index_selector = pn.widgets.Select(name="Index:", options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}, value="sie")
@@ -618,65 +629,71 @@ try:
 
     def update_data(event):
         with pn.param.set_values(final_pane, loading=True):
-            # Update plot with new values from selectors.
-            index = index_selector.value
-            area = area_selector.value
+            # Try fetching new data because it might not be available.
+            try:
+                # Update plot with new values from selectors.
+                index = index_selector.value
+                area = area_selector.value
 
-            # Download and extract new data.
-            extracted_data = tk.download_and_extract_data(index, area)
-            da = extracted_data["da"]
+                # Download and extract new data.
+                extracted_data = tk.download_and_extract_data(index, area)
+                da = extracted_data["da"]
 
-            # Make sure da_converted is global because it's used by other callback functions.
-            global da_converted
-            # Convert calendar to all_leap and interpolate missing February 29th values.
-            da_converted = tk.convert_and_interpolate_calendar(da)
+                # Make sure da_converted is global because it's used by other callback functions.
+                global da_converted
+                # Convert calendar to all_leap and interpolate missing February 29th values.
+                da_converted = tk.convert_and_interpolate_calendar(da)
 
-            # Recalculate and update the climatology plots (percentiles and median).
-            reference_period_selector.param.trigger("value")
+                # Recalculate and update the climatology plots (percentiles and median).
+                reference_period_selector.param.trigger("value")
 
-            # Update min/max lines.
-            min_max_dict = tk.calculate_min_max(da_converted)
-            cds_minimum.data.update(min_max_dict["cds_minimum"].data)
-            cds_maximum.data.update(min_max_dict["cds_maximum"].data)
+                # Update min/max lines.
+                min_max_dict = tk.calculate_min_max(da_converted)
+                cds_minimum.data.update(min_max_dict["cds_minimum"].data)
+                cds_maximum.data.update(min_max_dict["cds_maximum"].data)
 
-            # Update decadal climatology.
-            clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
-            clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
-            clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
-            clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
+                # Update decadal climatology.
+                clim_1980s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1978", "1989")))
+                clim_1990s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("1990", "1999")))
+                clim_2000s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2000", "2009")))
+                clim_2010s_dict = tk.calculate_span_and_median(da_converted.sel(time=slice("2010", "2019")))
 
-            cds_span_1980s.data.update(clim_1980s_dict["cds_span"].data)
-            cds_median_1980s.data.update(clim_1980s_dict["cds_median"].data)
-            cds_span_1990s.data.update(clim_1990s_dict["cds_span"].data)
-            cds_median_1990s.data.update(clim_1990s_dict["cds_median"].data)
-            cds_span_2000s.data.update(clim_2000s_dict["cds_span"].data)
-            cds_median_2000s.data.update(clim_2000s_dict["cds_median"].data)
-            cds_span_2010s.data.update(clim_2010s_dict["cds_span"].data)
-            cds_median_2010s.data.update(clim_2010s_dict["cds_median"].data)
+                cds_span_1980s.data.update(clim_1980s_dict["cds_span"].data)
+                cds_median_1980s.data.update(clim_1980s_dict["cds_median"].data)
+                cds_span_1990s.data.update(clim_1990s_dict["cds_span"].data)
+                cds_median_1990s.data.update(clim_1990s_dict["cds_median"].data)
+                cds_span_2000s.data.update(clim_2000s_dict["cds_span"].data)
+                cds_median_2000s.data.update(clim_2000s_dict["cds_median"].data)
+                cds_span_2010s.data.update(clim_2010s_dict["cds_span"].data)
+                cds_median_2010s.data.update(clim_2010s_dict["cds_median"].data)
 
-            # Update the individual years.
-            new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
-            for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
-                old_cds.data.update(new_cds.data)
+                # Update the individual years.
+                new_cds_individual_years = tk.calculate_individual_years(da, da_converted)
+                for new_cds, old_cds in zip(new_cds_individual_years.values(), cds_individual_years.values()):
+                    old_cds.data.update(new_cds.data)
 
-            # Update the yearly min/max values.
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
-            cds_yearly_max.data.update(new_cds_yearly_max.data)
-            cds_yearly_min.data.update(new_cds_yearly_min.data)
+                # Update the yearly min/max values.
+                new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
+                cds_yearly_max.data.update(new_cds_yearly_max.data)
+                cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-            # Update the zoom to the new data using the current zoom state.
-            zoom_shortcuts.param.trigger("clicked")
+                # Update the zoom to the new data using the current zoom state.
+                zoom_shortcuts.param.trigger("clicked")
 
-            # Update the plot title and x-axis label.
-            plot.title.text = extracted_data["title"]
-            plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+                # Update the plot title and x-axis label.
+                plot.title.text = extracted_data["title"]
+                plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-            # Find the day of year for the average minimum and maximum values. These are global variables because
-            # they are used in other callbacks.
-            global doy_minimum
-            doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
-            global doy_maximum
-            doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+                # Find the day of year for the average minimum and maximum values. These are global variables because
+                # they are used in other callbacks.
+                global doy_minimum
+                doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+                global doy_maximum
+                doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+
+            except OSError:
+                # Raise an exception with a custom error message that will be displayed in error prompt for the user.
+                raise ValueError("Data currently unavailable. Please try again later.")
 
 
     def update_zoom(event):

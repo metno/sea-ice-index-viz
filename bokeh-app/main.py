@@ -565,53 +565,29 @@ try:
     # Make sure that callback code runs when user clicks on one of the choices.
     plot_shortcuts.param.watch(plot_shortcuts_callback, "clicked", onlychanged=False)
 
-    # Create a label callback to update the bottom label so that the text about the median and percentiles,
-    # and the min/max lines is only shown when they are visible, respectively.
-    label_callback_js = '''
-    // Initialise an empty string
-    let label_text = ``;
-    
-    if (climatology.visible === true) {
-        label_text = label_text
-                     + `Median and percentiles (25-75% and 10-90%) for `
-                     + `${refper.slice(0,4)}-${refper.slice(5)}`;
+    # Create a callback to update the label text based on whether the climatology glyphs are visible, and also when
+    # the reference period changes.
+    def update_label_text(attr, old, new):
+        new_label = ""
+        if percentile_1090_glyph.visible:
+            new_label += f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}"
+        if min_line_glyph.visible:
+            if percentile_1090_glyph.visible:
+                new_label += f", min/max for {first_year}-{second_to_last_year}"
+            else:
+                new_label += f"Min/max for {first_year}-{second_to_last_year}"
 
-        if (min_max.visible === false) {
-            // When the min/max lines are not visible add a newline
-            label_text = label_text + `\n`;
-        }
-    }
-            
-    if (min_max.visible === true) {
-        // The added string is different depending on whether the climatology glyphs are visible
-        if (climatology.visible === true) {
-            label_text = label_text + `, min/max for ${first_year}-${second_to_last_year}\n`;
-        } else {
-            label_text = label_text + `Min/max for ${first_year}-${second_to_last_year}\n`;
-        }
-    }
-            
-    label_text = label_text
-                 + `${version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n`
-                 + `Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n`
-                 + `Last data point: ${last_date_string}`;
-    
-    info_label.text = label_text
-    '''
+        new_label += "\n"
+        new_label += f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                     "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                     f"Last data point: {last_date_string}"
 
-    label_callback = CustomJS(args=dict(info_label=info_label,
-                                        refper=reference_period_selector.value,
-                                        first_year=first_year,
-                                        second_to_last_year=second_to_last_year,
-                                        last_date_string=last_date_string,
-                                        version_label=version_label,
-                                        climatology=percentile_1090_glyph,
-                                        min_max=min_line_glyph), code=label_callback_js)
+        info_label.text = new_label
 
     # Check whether a change in the visibility state of the median and percentiles, and the min/max values has taken
     # place and run the callback function if so.
-    percentile_1090_glyph.js_on_change("visible", label_callback)
-    min_line_glyph.js_on_change("visible", label_callback)
+    percentile_1090_glyph.on_change("visible", update_label_text)
+    min_line_glyph.on_change("visible", update_label_text)
 
     # Define the layout.
     inputs = pn.Column(index_selector,
@@ -641,6 +617,9 @@ try:
             cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
             cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
             cds_median.data.update(percentiles_and_median_dict["cds_median"].data)
+
+            # Update the label text to display the new reference period.
+            update_label_text(None, None, None)
 
 
     def update_data(event):
@@ -799,15 +778,6 @@ try:
     index_selector.param.watch(update_data, "value")
     area_selector.param.watch(update_data, "value")
     reference_period_selector.param.watch(update_reference_period, "value")
-    reference_period_selector.jscallback(value=label_callback_js,
-                                         args={"info_label": info_label,
-                                               "refper": reference_period_selector.value,
-                                               "first_year": first_year,
-                                               "second_to_last_year": second_to_last_year,
-                                               "last_date_string": last_date_string,
-                                               "version_label": version_label,
-                                               "climatology": percentile_1090_glyph,
-                                               "min_max": min_line_glyph})
     zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)
     color_scale_selector.param.watch(update_line_color, "value")
 

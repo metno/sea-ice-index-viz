@@ -79,16 +79,17 @@ def download_and_extract_data(version, index, area):
 
     version_2 = {"sie": sie_dict_v2, "sia": sia_dict_v2}
     version_3 = {"sie": sie_dict_v3, "sia": sia_dict_v3}
-    version_dict = {"v2": version_2, "v3": version_3}
+    version_dict = {"v2p1": version_2, "v3p0test": version_3}
 
     ds = xr.open_dataset(version_dict[version][index][area], cache=False)
 
     da = ds[index]
     title = ds.title
+    ds_version = ds.version
     long_name = da.attrs["long_name"]
     units = da.attrs["units"]
 
-    return {"da": da, "title": title, "long_name": long_name, "units": units}
+    return {"da": da, "title": title, "ds_version": ds_version, "long_name": long_name, "units": units}
 
 
 def get_list_of_years(da):

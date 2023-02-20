@@ -21,7 +21,7 @@ pn.extension(exception_handler=exception_handler, notifications=True)
 
 # Add a parameter for setting the desired version of the sea ice data, and sync to url parameter.
 class VersionUrlParameter(param.Parameterized):
-    value = param.Parameter("v2")
+    value = param.Parameter("v2p1")
 
 
 pn.state.location.sync(VersionUrlParameter, {"value": "version"})
@@ -424,9 +424,15 @@ try:
     second_to_last_year = str(data_years[-2])
     last_date_string = str(da.time[-1].dt.strftime('%Y-%m-%d').values)
 
+    # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
+    if extracted_data["ds_version"] == "v2p1":
+        version_label = extracted_data["ds_version"]
+    elif extracted_data["ds_version"] == "v3p0":
+        version_label = extracted_data["ds_version"] + " (test version)"
+
     label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
                  f"min/max for {first_year}-{second_to_last_year}\n" \
-                 "v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                  "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
                  f"Last data point: {last_date_string}"
 
@@ -586,7 +592,7 @@ try:
     }
             
     label_text = label_text
-                 + `v2p1 EUMETSAT OSI SAF data with R&D input from ESA CCI\n`
+                 + `${version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n`
                  + `Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n`
                  + `Last data point: ${last_date_string}`;
     
@@ -598,6 +604,7 @@ try:
                                         first_year=first_year,
                                         second_to_last_year=second_to_last_year,
                                         last_date_string=last_date_string,
+                                        version_label=version_label,
                                         climatology=percentile_1090_glyph,
                                         min_max=min_line_glyph), code=label_callback_js)
 
@@ -798,6 +805,7 @@ try:
                                                "first_year": first_year,
                                                "second_to_last_year": second_to_last_year,
                                                "last_date_string": last_date_string,
+                                               "version_label": version_label,
                                                "climatology": percentile_1090_glyph,
                                                "min_max": min_line_glyph})
     zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)

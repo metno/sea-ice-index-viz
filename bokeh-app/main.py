@@ -2,6 +2,7 @@ import panel as pn
 from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, CustomJS, Paragraph, Label
 import logging
+import param
 import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
@@ -16,6 +17,14 @@ def exception_handler(ex):
 
 # Handle exceptions.
 pn.extension(exception_handler=exception_handler, notifications=True)
+
+
+# Add a parameter for setting the desired version of the sea ice data, and sync to url parameter.
+class VersionUrlParameter(param.Parameterized):
+    value = param.Parameter("v2")
+
+
+pn.state.location.sync(VersionUrlParameter, {"value": "version"})
 
 # Add dropdown menu for index selection, and sync to url parameter.
 index_selector = pn.widgets.Select(name="Index:", options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}, value="sie")
@@ -97,7 +106,7 @@ pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
-    extracted_data = tk.download_and_extract_data(index_selector.value, area_selector.value)
+    extracted_data = tk.download_and_extract_data(VersionUrlParameter.value, index_selector.value, area_selector.value)
     da = extracted_data["da"]
 
     # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.
@@ -632,11 +641,12 @@ try:
             # Try fetching new data because it might not be available.
             try:
                 # Update plot with new values from selectors.
+                version = VersionUrlParameter.value
                 index = index_selector.value
                 area = area_selector.value
 
                 # Download and extract new data.
-                extracted_data = tk.download_and_extract_data(index, area)
+                extracted_data = tk.download_and_extract_data(version, index, area)
                 da = extracted_data["da"]
 
                 # Make sure da_converted is global because it's used by other callback functions.

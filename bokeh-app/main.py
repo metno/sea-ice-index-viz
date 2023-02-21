@@ -1,6 +1,6 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, CustomJS, Paragraph, Label
+from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label
 import logging
 import param
 import toolkit as tk

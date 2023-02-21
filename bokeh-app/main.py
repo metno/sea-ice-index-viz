@@ -416,8 +416,8 @@ try:
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
     # Find the day of year with the minimum and maximum values. These are used in the zoom shortcuts.
-    doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
-    doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+    doy_minimum = da_converted.groupby("time.dayofyear").median().idxmin().values.astype(int)
+    doy_maximum = da_converted.groupby("time.dayofyear").median().idxmax().values.astype(int)
 
     # Add a bottom label with information about the data that's used to make the graphic.
     first_year = str(data_years[0])
@@ -680,9 +680,9 @@ try:
                 # Find the day of year for the average minimum and maximum values. These are global variables because
                 # they are used in other callbacks.
                 global doy_minimum
-                doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+                doy_minimum = da_converted.groupby("time.dayofyear").median().idxmin().values.astype(int)
                 global doy_maximum
-                doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+                doy_maximum = da_converted.groupby("time.dayofyear").median().idxmax().values.astype(int)
 
                 # Update the zoom to the new data using the current zoom state.
                 zoom_shortcuts.param.trigger("clicked")

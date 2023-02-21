@@ -338,7 +338,7 @@ try:
     </div>
     """
 
-    plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
     MAX_TOOLTIPS = """
@@ -362,7 +362,7 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
     MIN_TOOLTIPS = """
@@ -386,7 +386,7 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS, toggleable=False))
 
     # Hardcode the x-ticks (day_of_year, date).
     plot.x_range = Range1d(start=1, end=366)

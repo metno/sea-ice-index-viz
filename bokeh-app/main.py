@@ -673,9 +673,6 @@ try:
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-                # Update the zoom to the new data using the current zoom state.
-                zoom_shortcuts.param.trigger("clicked")
-
                 # Update the plot title and x-axis label.
                 plot.title.text = extracted_data["title"]
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
@@ -686,6 +683,9 @@ try:
                 doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
                 global doy_maximum
                 doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+
+                # Update the zoom to the new data using the current zoom state.
+                zoom_shortcuts.param.trigger("clicked")
 
             except OSError:
                 # Raise an exception with a custom error message that will be displayed in error prompt for the user.

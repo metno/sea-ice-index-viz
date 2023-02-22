@@ -1,6 +1,6 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, CustomJS, Paragraph, Label
+from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label
 import logging
 import param
 import toolkit as tk
@@ -338,7 +338,7 @@ try:
     </div>
     """
 
-    plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
     MAX_TOOLTIPS = """
@@ -362,7 +362,7 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
     MIN_TOOLTIPS = """
@@ -386,7 +386,7 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS))
+    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS, toggleable=False))
 
     # Hardcode the x-ticks (day_of_year, date).
     plot.x_range = Range1d(start=1, end=366)
@@ -416,8 +416,8 @@ try:
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
     # Find the day of year with the minimum and maximum values. These are used in the zoom shortcuts.
-    doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
-    doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+    doy_minimum = da_converted.groupby("time.dayofyear").median().idxmin().values.astype(int)
+    doy_maximum = da_converted.groupby("time.dayofyear").median().idxmax().values.astype(int)
 
     # Add a bottom label with information about the data that's used to make the graphic.
     first_year = str(data_years[0])
@@ -673,9 +673,6 @@ try:
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-                # Update the zoom to the new data using the current zoom state.
-                zoom_shortcuts.param.trigger("clicked")
-
                 # Update the plot title and x-axis label.
                 plot.title.text = extracted_data["title"]
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
@@ -683,9 +680,12 @@ try:
                 # Find the day of year for the average minimum and maximum values. These are global variables because
                 # they are used in other callbacks.
                 global doy_minimum
-                doy_minimum = da_converted.groupby("time.dayofyear").mean().idxmin().values.astype(int)
+                doy_minimum = da_converted.groupby("time.dayofyear").median().idxmin().values.astype(int)
                 global doy_maximum
-                doy_maximum = da_converted.groupby("time.dayofyear").mean().idxmax().values.astype(int)
+                doy_maximum = da_converted.groupby("time.dayofyear").median().idxmax().values.astype(int)
+
+                # Update the zoom to the new data using the current zoom state.
+                zoom_shortcuts.param.trigger("clicked")
 
             except OSError:
                 # Raise an exception with a custom error message that will be displayed in error prompt for the user.

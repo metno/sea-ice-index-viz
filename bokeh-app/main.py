@@ -16,6 +16,7 @@ def exception_handler(ex):
 
 
 # Handle exceptions.
+pn.extension('notifications')
 pn.extension(exception_handler=exception_handler, notifications=True)
 
 

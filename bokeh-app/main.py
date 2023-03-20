@@ -16,6 +16,7 @@ def exception_handler(ex):
 
 
 # Handle exceptions.
+pn.extension('notifications')
 pn.extension(exception_handler=exception_handler, notifications=True)
 
 
@@ -596,12 +597,15 @@ try:
                        plot_shortcuts,
                        zoom_shortcuts,
                        color_scale_selector,
-                       sizing_mode="fixed")
-    row1 = pn.Row(pn.pane.Bokeh(plot, sizing_mode="stretch_both"), inputs)
+                       sizing_mode="stretch_both")
 
-    # Create a label to signify that the tool is WIP.
-    text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
-    column1 = pn.Column(text, row1)
+    # Use a grid layout.
+    gspec = pn.GridSpec(sizing_mode="stretch_both")
+
+    # Divide the layout into two rows and 4 columns. The plot takes up 2 rows and 3 columns, while the input widgets
+    # take up 1 row and 1 column.
+    gspec[0:2, :3] = pn.pane.Bokeh(plot, sizing_mode="stretch_both")
+    gspec[0, 4] = inputs
 
 
     def update_reference_period(event):
@@ -781,7 +785,7 @@ try:
     zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)
     color_scale_selector.param.watch(update_line_color, "value")
 
-    final_pane = column1.servable()
+    final_pane = gspec.servable()
 
     # Make sure plot shortcut and zoom get set correctly if url parameters are provided.
     plot_shortcuts.param.trigger("clicked")

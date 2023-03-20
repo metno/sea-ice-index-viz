@@ -600,10 +600,6 @@ try:
                        sizing_mode="fixed")
     row1 = pn.Row(pn.pane.Bokeh(plot, sizing_mode="stretch_both"), inputs)
 
-    # Create a label to signify that the tool is WIP.
-    text = Paragraph(text="UNDER DEVELOPMENT", style={"color": "#ff0000", "font-weight": "bold"})
-    column1 = pn.Column(text, row1)
-
 
     def update_reference_period(event):
         with pn.param.set_values(final_pane, loading=True):
@@ -782,7 +778,7 @@ try:
     zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)
     color_scale_selector.param.watch(update_line_color, "value")
 
-    final_pane = column1.servable()
+    final_pane = row1.servable()
 
     # Make sure plot shortcut and zoom get set correctly if url parameters are provided.
     plot_shortcuts.param.trigger("clicked")

@@ -6,82 +6,15 @@ import matplotlib
 import itertools
 
 
-def download_and_extract_data(version, index, area):
-    url_prefix = "https://thredds.met.no/thredds/dodsC"
+def download_and_extract_data(index, area, frequency, version):
+    url_prefix = "https://thredds.met.no/thredds/dodsC/metusers/thomasl"
+    version_dict = {"v2p1": "OSI420_moreRegions", "v3p0test": "OSI420_BetaFromSICv3"}
 
-    sie_dict_v2 = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sie_daily.nc",
-                   "bar": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bar/osisaf_bar_sie_daily.nc",
-                   "beau": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/beau/osisaf_beau_sie_daily.nc",
-                   "chuk": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/chuk/osisaf_chuk_sie_daily.nc",
-                   "ess": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ess/osisaf_ess_sie_daily.nc",
-                   "fram": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/fram/osisaf_fram_sie_daily.nc",
-                   "kara": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/kara/osisaf_kara_sie_daily.nc",
-                   "lap": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/lap/osisaf_lap_sie_daily.nc",
-                   "sval": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/sval/osisaf_sval_sie_daily.nc",
-                   "SH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sie_daily.nc",
-                   "bell": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bell/osisaf_bell_sie_daily.nc",
-                   "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sie_daily.nc",
-                   "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sie_daily.nc",
-                   "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sie_daily.nc",
-                   "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sie_daily.nc",
-                   "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sie_daily.nc"}
+    url = f"{url_prefix}/{version_dict[version]}/{area}/osisaf_{area}_{index}_{frequency}.nc"
 
-    sie_dict_v3 = {"NH": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/nh/osisaf_nh_sie_daily.nc",
-                   "bar": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/bar/osisaf_bar_sie_daily.nc",
-                   "beau": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/beau/osisaf_beau_sie_daily.nc",
-                   "chuk": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/chuk/osisaf_chuk_sie_daily.nc",
-                   "ess": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/ess/osisaf_ess_sie_daily.nc",
-                   "fram": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/fram/osisaf_fram_sie_daily.nc",
-                   "kara": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/kara/osisaf_kara_sie_daily.nc",
-                   "lap": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/lap/osisaf_lap_sie_daily.nc",
-                   "sval": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/sval/osisaf_sval_sie_daily.nc",
-                   "SH": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/sh/osisaf_sh_sie_daily.nc",
-                   "bell": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/bell/osisaf_bell_sie_daily.nc",
-                   "indi": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/indi/osisaf_indi_sie_daily.nc",
-                   "ross": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/ross/osisaf_ross_sie_daily.nc",
-                   "wedd": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/wedd/osisaf_wedd_sie_daily.nc",
-                   "wpac": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/wpac/osisaf_wpac_sie_daily.nc",
-                   "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/glb/osisaf_glb_sie_daily.nc"}
-
-    sia_dict_v2 = {"NH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/nh/osisaf_nh_sia_daily.nc",
-                "bar": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bar/osisaf_bar_sia_daily.nc",
-                "beau": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/beau/osisaf_beau_sia_daily.nc",
-                "chuk": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/chuk/osisaf_chuk_sia_daily.nc",
-                "ess": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ess/osisaf_ess_sia_daily.nc",
-                "fram": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/fram/osisaf_fram_sia_daily.nc",
-                "kara": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/kara/osisaf_kara_sia_daily.nc",
-                "lap": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/lap/osisaf_lap_sia_daily.nc",
-                "sval": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/sval/osisaf_sval_sia_daily.nc",
-                "SH": f"{url_prefix}/osisaf/met.no/ice/index/v2p1/sh/osisaf_sh_sia_daily.nc",
-                "bell": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/bell/osisaf_bell_sia_daily.nc",
-                "indi": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/indi/osisaf_indi_sia_daily.nc",
-                "ross": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/ross/osisaf_ross_sia_daily.nc",
-                "wedd": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wedd/osisaf_wedd_sia_daily.nc",
-                "wpac": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/wpac/osisaf_wpac_sia_daily.nc",
-                "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_moreRegions/glb/osisaf_glb_sia_daily.nc"}
-
-    sia_dict_v3 = {"NH": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/nh/osisaf_nh_sia_daily.nc",
-                   "bar": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/bar/osisaf_bar_sia_daily.nc",
-                   "beau": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/beau/osisaf_beau_sia_daily.nc",
-                   "chuk": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/chuk/osisaf_chuk_sia_daily.nc",
-                   "ess": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/ess/osisaf_ess_sia_daily.nc",
-                   "fram": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/fram/osisaf_fram_sia_daily.nc",
-                   "kara": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/kara/osisaf_kara_sia_daily.nc",
-                   "lap": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/lap/osisaf_lap_sia_daily.nc",
-                   "sval": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/sval/osisaf_sval_sia_daily.nc",
-                   "SH": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/sh/osisaf_sh_sia_daily.nc",
-                   "bell": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/bell/osisaf_bell_sia_daily.nc",
-                   "indi": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/indi/osisaf_indi_sia_daily.nc",
-                   "ross": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/ross/osisaf_ross_sia_daily.nc",
-                   "wedd": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/wedd/osisaf_wedd_sia_daily.nc",
-                   "wpac": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/wpac/osisaf_wpac_sia_daily.nc",
-                   "GLOBAL": f"{url_prefix}/metusers/thomasl/OSI420_BetaFromSICv3/glb/osisaf_glb_sia_daily.nc"}
-
-    version_2 = {"sie": sie_dict_v2, "sia": sia_dict_v2}
-    version_3 = {"sie": sie_dict_v3, "sia": sia_dict_v3}
-    version_dict = {"v2p1": version_2, "v3p0test": version_3}
-
-    ds = xr.open_dataset(version_dict[version][index][area], cache=False)
+    # Open the dataset with cache set to false, otherwise the plots will keep showing old data when updated data is
+    # available.
+    ds = xr.open_dataset(url, cache=False)
 
     da = ds[index]
     title = ds.title

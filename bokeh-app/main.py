@@ -34,9 +34,9 @@ pn.state.location.sync(index_selector, {"value": "index"})
 # Add dropdown menu for area selection, and sync to url parameter.
 area_groups = {
     "Global": {
-        "Global": "GLOBAL",
-        "Northern Hemisphere": "NH",
-        "Southern Hemisphere": "SH",
+        "Global": "glb",
+        "Northern Hemisphere": "nh",
+        "Southern Hemisphere": "sh",
     },
     "Northern Hemisphere Regions": {
         "Barents Sea": "bar",
@@ -57,7 +57,7 @@ area_groups = {
     }
 }
 
-area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="NH")
+area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="nh")
 pn.state.location.sync(area_selector, {"value": "area"})
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots, and sync to url parameter.
@@ -107,7 +107,10 @@ pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
 try:
-    extracted_data = tk.download_and_extract_data(VersionUrlParameter.value, index_selector.value, area_selector.value)
+    extracted_data = tk.download_and_extract_data(index_selector.value,
+                                                  area_selector.value,
+                                                  "daily",
+                                                  VersionUrlParameter.value)
     da = extracted_data["da"]
 
     # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.
@@ -546,7 +549,7 @@ try:
             current_year_outline.visible = True
             current_year_filler.visible = True
 
-            if area_selector.value in ("NH", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"):
+            if area_selector.value in ("nh", "bar", "beau", "chuk", "ess", "fram", "kara", "lap", "sval"):
                 # Show years 2012 and 2020 for the northern hemisphere.
                 year_2012_index = list(data_years).index("2012")
                 year_2020_index = list(data_years).index("2020")
@@ -636,7 +639,7 @@ try:
                 area = area_selector.value
 
                 # Download and extract new data.
-                extracted_data = tk.download_and_extract_data(version, index, area)
+                extracted_data = tk.download_and_extract_data(index, area, "daily", version)
                 da = extracted_data["da"]
 
                 # Make sure da_converted is global because it's used by other callback functions.

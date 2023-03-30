@@ -3,7 +3,10 @@ from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label
 import logging
 import param
-import toolkit as tk
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import toolkit as tk  # noqa: E402
 
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")

@@ -4,6 +4,7 @@ import numpy as np
 import cmcrameri.cm as cm
 import matplotlib
 import itertools
+import calendar
 
 
 def download_and_extract_data(index, area, frequency, version):
@@ -115,6 +116,67 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
+def calculate_monthly(da, month):
+    # Select the subset of the data that contains the given month.
+    subset = da.sel(time=da.time.dt.month.isin(month))
+
+    # Create an array with date strings of the format "month year".
+    date = np.char.add([calendar.month_name[month] + " "], subset.time.dt.year.astype(str))
+
+    # Calculate the ranks of the index values. The lowest value has a rank of 1.
+    rank = subset.rank("time").values
+
+    cds_month = ColumnDataSource({"year": subset.time.dt.year.values,
+                                  "index_values": subset.values,
+                                  "date": date,
+                                  "rank": rank})
+
+    return cds_month
+
+
+def monthly_trend(da, month, reference_period):
+    # Select the subset of the data for the given month, and drop any values that are nans.
+    subset = da.sel(time=da.time.dt.month.isin(month)).dropna("time")
+
+    # Set the x-values to the years.
+    x = subset.time.dt.year.values
+
+    # In order to calculate a linear regression with numpy we need to add a column of ones to the right of the x-values.
+    A = np.vstack([x, np.ones(len(x))]).T
+
+    # Set the y-values to the index values.
+    y = subset.values
+
+    # m is the coefficient, and c is the constant.
+    m, c = np.linalg.lstsq(A, y, rcond=None)[0]
+
+    # Calculate index values for the start and end of the trend line.
+    first_year = (m * x[0]) + c
+    last_year = (m * x[-1]) + c
+
+    # Create a CDS for the trend line.
+    cds_trend = ColumnDataSource({"year": [x[0], x[-1]], "start_end_line": [first_year, last_year]})
+
+    # Get the absolute trend in thousands of square kilometers per year.
+    absolute_trend = m * 1000
+
+    # Create a new subset only containing the years of the reference period, and drop nan values.
+    start_year = reference_period[0:4]
+    end_year = reference_period[5:9]
+    reference_period_subset = subset.sel(time=slice(start_year, end_year)).dropna("time")
+
+    reference_period_index_mean = reference_period_subset.mean().values
+    relative_means = 100 * (subset.values - reference_period_index_mean) / reference_period_index_mean
+
+    # Again, m is the coefficient, and c is the constant.
+    m, c = np.linalg.lstsq(A, relative_means, rcond=None)[0]
+
+    # Get the relative trend coefficient and convert it to per decade.
+    relative_trend = 10 * m
+
+    return cds_trend, absolute_trend, relative_trend
+
+
 def find_yearly_min_max(da_converted, fill_colors_dict):
     # Find the years we have data for, except the current one. Select the data from those years and group it by year.
     years = get_list_of_years(da_converted)[:-1]
@@ -157,6 +219,28 @@ def find_yearly_min_max(da_converted, fill_colors_dict):
 def find_nice_ylimit(da):
     """Find an upper y-limit with 10 percent added to the maximum value of the data."""
     return 1.10 * da.max().values
+
+
+def find_nice_yrange(monthly_data, trend_data, padding_mult, min_span):
+    """Function to find a nice y-range that is not too narrow."""
+    all_monthly_data = np.concatenate((monthly_data, trend_data))
+    monthly_min = np.nanmin(all_monthly_data)
+    monthly_max = np.nanmax(all_monthly_data)
+    monthly_span = monthly_max - monthly_min
+
+    if monthly_span < min_span:
+        # Some months have an index value that hardly changes from year to year. By using Bokeh's autoscaling function
+        # when new data gets loaded the trend line ends up being plotted incorrectly relatively to the monthly data
+        # due to round-off errors. We avoid this by using a minimum span width.
+        padding = min_span - monthly_span
+        monthly_min -= padding / 2
+        monthly_max += padding / 2
+    else:
+        padding = padding_mult * monthly_span
+        monthly_min -= padding / 2
+        monthly_max += padding / 2
+
+    return monthly_min, monthly_max
 
 
 def decade_color_dict(decade, color):

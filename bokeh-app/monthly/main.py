@@ -169,17 +169,23 @@ try:
                                        min_span)
     plot.y_range = Range1d(start=y_min, end=y_max)
 
+    # Use a grid layout.
+    gspec = pn.GridSpec(sizing_mode="stretch_both")
+
     inputs = pn.Column(index_selector,
                        area_selector,
                        month_selector,
                        reference_period_selector,
                        sizing_mode="stretch_both")
 
-    final_pane = pn.Row(pn.pane.Bokeh(plot, sizing_mode="stretch_both"), inputs)
+    # Divide the layout into two rows and 4 columns. The plot takes up 2 rows and 3 columns, while the input widgets
+    # take up 1 row and 1 column.
+    gspec[0:2, :3] = pn.pane.Bokeh(plot, sizing_mode="stretch_both")
+    gspec[0, 4] = inputs
 
 
     def update_data(event):
-        with pn.param.set_values(final_pane, loading=True):
+        with pn.param.set_values(gspec, loading=True):
             # Try fetching new data because it might not be available.
             try:
                 # Update plot with new values from selectors.
@@ -232,7 +238,7 @@ try:
     month_selector.param.watch(update_data, "value")
     reference_period_selector.param.watch(update_data, "value")
 
-    final_pane.servable()
+    gspec.servable()
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.

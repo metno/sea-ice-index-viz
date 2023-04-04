@@ -115,6 +115,10 @@ try:
 
     trend_line = plot.line(x="year", y="start_end_line", source=cds_trend, line_color="black", line_width=3)
 
+    # Add axis labels.
+    plot.xaxis.axis_label = "Year"
+    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+
     # Add a hovertool to display the date, index value, and rank of the individual years.
     TOOLTIPS = """
         <div>

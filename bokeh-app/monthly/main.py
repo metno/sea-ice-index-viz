@@ -79,7 +79,7 @@ month_dict = {"January": 1,
               "November": 11,
               "December": 12}
 
-month_selector = pn.widgets.Select(name="Month", options=month_dict, value=2)
+month_selector = pn.widgets.Select(name="Month", options=month_dict, value=1)
 pn.state.location.sync(month_selector, {"value": "month"})
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots, and sync to url parameter.

@@ -146,8 +146,8 @@ try:
     elif extracted_data["ds_version"] == "v3p0":
         version_label = extracted_data["ds_version"] + " (test version)"
 
-    label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:.0f} thousand km²/year\n" \
-                 f"Relative trend: {rel_trend:.1f}%/decade against "\
+    label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:+.1f} thousand km²/year\n" \
+                 f"Relative trend: {rel_trend:+.1f}%/decade against "\
                  f"reference period {reference_period_selector.value}\n" \
                  f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                  "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"
@@ -224,8 +224,8 @@ try:
                 plot.title.text = extracted_data["title"]
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-                label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:.0f} thousand km²/year\n" \
-                             f"Relative trend: {rel_trend:.1f}%/decade against " \
+                label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:+.1f} thousand km²/year\n" \
+                             f"Relative trend: {rel_trend:+.1f}%/decade against " \
                              f"reference period {reference_period_selector.value}\n" \
                              f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                              "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"

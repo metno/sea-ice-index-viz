@@ -9,3 +9,4 @@ dependencies:
   - cmcrameri
   - matplotlib
   - jupyter-server-proxy
+  - requests

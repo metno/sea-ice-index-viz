@@ -5,6 +5,7 @@ import cmcrameri.cm as cm
 import matplotlib
 import itertools
 import calendar
+import requests
 
 
 def download_and_extract_data(index, area, frequency, version):
@@ -12,6 +13,16 @@ def download_and_extract_data(index, area, frequency, version):
     version_dict = {"v2p1": "OSI420_moreRegions", "v3p0test": "OSI420_BetaFromSICv3"}
 
     url = f"{url_prefix}/{version_dict[version]}/{area}/osisaf_{area}_{index}_{frequency}.nc"
+
+    # On 2023-04-12 an issue was experienced with the thredds server where it hung and did not properly serve the
+    # data files it was supposed to serve. xarray's open_dataset function and the backend do not provide an easy way
+    # to set a timeout interval, so to work around this we use the requests library.
+    try:
+        r = requests.head(f"{url}.html")
+        r.raise_for_status()
+    except requests.exceptions.RequestException:
+        # Raise an OSError since this is the same error we check for in our try-except statement in the main scripts.
+        raise OSError
 
     # Open the dataset with cache set to false, otherwise the plots will keep showing old data when updated data is
     # available.

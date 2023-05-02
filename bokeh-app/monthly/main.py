@@ -1,11 +1,12 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, Range1d, Paragraph, Label
+from bokeh.models import HoverTool, Paragraph, ColumnDataSource, Legend
 import logging
 import param
 import calendar
 import os
 import sys
+from datetime import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import toolkit as tk  # noqa: E402
 
@@ -65,28 +66,28 @@ area_groups = {
 area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="nh")
 pn.state.location.sync(area_selector, {"value": "area"})
 
-# Add a dropdown menu for selecting the month that will be plotted.
-month_dict = {"January": 1,
-              "February": 2,
-              "March": 3,
-              "April": 4,
-              "May": 5,
-              "June": 6,
-              "July": 7,
-              "August": 8,
-              "September": 9,
-              "October": 10,
-              "November": 11,
-              "December": 12}
-
-month_selector = pn.widgets.Select(name="Month", options=month_dict, value=1)
-pn.state.location.sync(month_selector, {"value": "month"})
-
 # Add a dropdown menu for selecting the reference period of the percentile and median plots, and sync to url parameter.
 reference_period_selector = pn.widgets.Select(name="Reference period of percentiles and median:",
                                               options=["1981-2010", "1991-2020"],
                                               value="1981-2010")
 pn.state.location.sync(reference_period_selector, {"value": "ref_period"})
+
+# Add a dropdown menu for selecting the color map for plotting the individual months.
+color_groups = {
+    "Sequential colour maps": {
+        "Viridis": "viridis",
+        "Plasma": "plasma",
+        "Batlow": "batlow",
+    },
+    "Non-sequential colour maps": {
+        "BatlowS": "batlowS",
+        "8 repeating colours": "cyclic_8",
+        "17 repeating colours": "cyclic_17",
+    }
+}
+
+color_scale_selector = pn.widgets.Select(name="Colour map:", groups=color_groups, value="viridis")
+pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 try:
     extracted_data = tk.download_and_extract_data(index_selector.value,
@@ -95,25 +96,54 @@ try:
                                                   VersionUrlParameter.value)
     da = extracted_data["da"]
 
-    plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
+    plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save, reset")
     plot.sizing_mode = "stretch_both"
 
-    cds_month = tk.calculate_monthly(da, month_selector.value)
+    legend_list = []
 
-    monthly_line = plot.line(x="year", y="index_values", source=cds_month, line_width=4, line_color="red")
-    monthly_circles = plot.circle(x="year",
-                                  y="index_values",
-                                  source=cds_month,
-                                  size=10,
-                                  line_width=2,
-                                  line_color="red",
-                                  fill_color="white")
+    cds_all_months = tk.calculate_all_months(da)
+    all_months_glyph = plot.line(x="x", y="index_values", source=cds_all_months, line_width=2, line_color="grey")
+    all_months_glyph.visible = False
+    legend_list.append(("Monthly", [all_months_glyph]))
 
-    cds_trend, abs_trend, rel_trend = tk.monthly_trend(da,
-                                                       month_selector.value,
-                                                       reference_period_selector.value)
+    colors_dict = tk.find_line_colors(calendar.month_name[1:], "viridis")
+    cds_monthly_dict = tk.calculate_monthly(da)
+    cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value)
 
-    trend_line = plot.line(x="year", y="start_end_line", source=cds_trend, line_color="black", line_width=3)
+    current_month = datetime.now().strftime("%B")
+
+    circle_glyph_list = []
+    trend_line_glyph_list = []
+    cds_trend_list = []
+    for month, cds_month in cds_monthly_dict.items():
+        circle_glyph = plot.circle(x="x",
+                                   y="index_values",
+                                   source=cds_month,
+                                   size=10,
+                                   line_width=2,
+                                   color=colors_dict[month])
+
+        circle_glyph_list.append(circle_glyph)
+
+        trend_line_glyph = plot.line(x="x",
+                                     y="start_end_line",
+                                     source=cds_monthly_trend_dict[month],
+                                     line_color=colors_dict[month],
+                                     line_width=3)
+
+        trend_line_glyph_list.append(trend_line_glyph)
+
+        legend_list.append((month, [circle_glyph, trend_line_glyph]))
+
+        if month != current_month:
+            # Hide all months except the current one.
+            circle_glyph.visible = False
+            trend_line_glyph.visible = False
+
+    legend = Legend(items=legend_list, location="top_center")
+    legend.spacing = 1
+    plot.add_layout(legend, "right")
+    plot.legend.click_policy = "hide"
 
     # Add axis labels.
     plot.xaxis.axis_label = "Year"
@@ -124,7 +154,7 @@ try:
         <div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Date:</span>
-                <span style="font-size: 12px;">@date</span>
+                <span style="font-size: 12px;">@month @year</span>
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Index:</span>
@@ -132,54 +162,46 @@ try:
                 <span style="font-size: 12px;">mill. km<sup>2</sup></span>
             </div>
             <div>
-                <span style="font-size: 12px; font-weight: bold">Rank:</span>
+                <span style="font-size: 12px; font-weight: bold">Rank (@month):</span>
                 <span style="font-size: 12px;">@rank</span>
             </div>
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[monthly_circles], tooltips=TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=circle_glyph_list, tooltips=TOOLTIPS, toggleable=False))
 
-    # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
-    if extracted_data["ds_version"] == "v2p1":
-        version_label = extracted_data["ds_version"]
-    elif extracted_data["ds_version"] == "v3p0":
-        version_label = extracted_data["ds_version"] + " (test version)"
+    # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
+    TOOLTIPS = """
+            <div>
+                <div>
+                    <span style="font-size: 12px; font-weight: bold">Month:</span>
+                    <span style="font-size: 12px;">@month</span>
+                </div>
+                <div>
+                    <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
+                    <span style="font-size: 12px;">@abs_trend{+0.0}</span>
+                    <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
+                </div>
+                <div>
+                    <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
+                    <span style="font-size: 12px;">@rel_trend{+0.0}% decade<sup>-1</sup></span>
+                </div>
+                <div>
+                    <span style="font-size: 12px; font-weight: bold">Reference period:</span>
+                    <span style="font-size: 12px;">@ref_period</span>
+                </div>
+            </div>
+            """
 
-    label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:+.1f} thousand km²/year\n" \
-                 f"Relative trend: {rel_trend:+.1f}%/decade against "\
-                 f"reference period {reference_period_selector.value}\n" \
-                 f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"
-
-    info_label = Label(x=5,
-                       y=5,
-                       x_units='screen',
-                       y_units='screen',
-                       text=label_text,
-                       text_font_size='12px',
-                       text_color='black')
-
-    plot.add_layout(info_label)
-
-    # Use 0.5 * y-span of data to pad the data. For data with very small spans make sure that the y-span of the plot
-    # is at least 0.1.
-    padding_multiplier = 0.5
-    min_span = 0.1
-
-    y_min, y_max = tk.find_nice_yrange(cds_month.data["index_values"],
-                                       cds_trend.data["start_end_line"],
-                                       padding_multiplier,
-                                       min_span)
-    plot.y_range = Range1d(start=y_min, end=y_max)
+    plot.add_tools(HoverTool(renderers=trend_line_glyph_list, tooltips=TOOLTIPS, toggleable=False))
 
     # Use a grid layout.
     gspec = pn.GridSpec(sizing_mode="stretch_both")
 
     inputs = pn.Column(index_selector,
                        area_selector,
-                       month_selector,
                        reference_period_selector,
+                       color_scale_selector,
                        sizing_mode="stretch_both")
 
     # Divide the layout into two rows and 4 columns. The plot takes up 2 rows and 3 columns, while the input widgets
@@ -201,46 +223,39 @@ try:
                 extracted_data = tk.download_and_extract_data(index, area, "monthly", version)
                 da = extracted_data["da"]
 
-                new_cds_month = tk.calculate_monthly(da, month_selector.value)
-                cds_month.data.update(new_cds_month.data)
+                new_cds_line_all_data = tk.calculate_all_months(da)
+                cds_all_months.data.update(new_cds_line_all_data.data)
 
-                new_cds_trend, abs_trend, rel_trend = tk.monthly_trend(da,
-                                                                       month_selector.value,
-                                                                       reference_period_selector.value)
-
-                cds_trend.data.update(new_cds_trend.data)
-
-                y_min, y_max = tk.find_nice_yrange(cds_month.data["index_values"],
-                                                   cds_trend.data["start_end_line"],
-                                                   padding_multiplier,
-                                                   min_span)
-
-                plot.y_range.start = y_min
-                plot.y_range.reset_start = y_min
-                plot.y_range.end = y_max
-                plot.y_range.reset_end = y_max
+                new_cds_monthly_dict = tk.calculate_monthly(da)
+                new_cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value)
+                for month, new_cds_month in new_cds_monthly_dict.items():
+                    cds_monthly_dict[month].data.update(new_cds_month.data)
+                    cds_monthly_trend_dict[month].data.update(new_cds_monthly_trend_dict[month].data)
 
                 # Update the plot title and x-axis label.
                 plot.title.text = extracted_data["title"]
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
-                label_text = f"{calendar.month_name[month_selector.value]} trend: {abs_trend:+.1f} thousand km²/year\n" \
-                             f"Relative trend: {rel_trend:+.1f}%/decade against " \
-                             f"reference period {reference_period_selector.value}\n" \
-                             f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                             "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)"
-
-                info_label.text = label_text
-
             except OSError:
                 # Raise an exception with a custom error message that will be displayed in error prompt for the user.
                 raise ValueError("Data currently unavailable. Please try again later.")
 
+
+    def update_color_map(event):
+        with pn.param.set_values(gspec, loading=True):
+            colors_dict = tk.find_line_colors(calendar.month_name[1:], color_scale_selector.value)
+            for circle_glyph, trend_line_glyph, color in zip(circle_glyph_list,
+                                                             trend_line_glyph_list,
+                                                             colors_dict.values()):
+                circle_glyph.glyph.fill_color = color
+                circle_glyph.glyph.line_color = color
+                trend_line_glyph.glyph.line_color = color
+
     # Run callbacks when widget values change.
     index_selector.param.watch(update_data, "value")
     area_selector.param.watch(update_data, "value")
-    month_selector.param.watch(update_data, "value")
     reference_period_selector.param.watch(update_data, "value")
+    color_scale_selector.param.watch(update_color_map, "value")
 
     gspec.servable()
 

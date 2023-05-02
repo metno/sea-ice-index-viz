@@ -116,65 +116,92 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
-def calculate_monthly(da, month):
-    # Select the subset of the data that contains the given month.
-    subset = da.sel(time=da.time.dt.month.isin(month))
+def calculate_monthly(da):
+    # Find which months are in the data.
+    months = np.unique(da.time.dt.month)
 
-    # Create an array with date strings of the format "month year".
-    date = np.char.add([calendar.month_name[month] + " "], subset.time.dt.year.astype(str))
+    # Create a dictionary to store the ColumnDataSource of each month.
+    cds_monthly_dict = {}
 
-    # Calculate the ranks of the index values. The lowest value has a rank of 1.
-    rank = subset.rank("time").values
+    for month in months:
+        # Select the subset of the data that contains the given month.
+        subset = da.sel(time=da.time.dt.month.isin(month))
 
-    cds_month = ColumnDataSource({"year": subset.time.dt.year.values,
-                                  "index_values": subset.values,
-                                  "date": date,
-                                  "rank": rank})
+        # Calculate the ranks of the index values. The lowest value has a rank of 1.
+        rank = subset.rank("time").values
 
-    return cds_month
+        cds_month = ColumnDataSource({"x": subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12),
+                                      "index_values": subset.values,
+                                      "year": subset.time.dt.year.values.astype(str),
+                                      "month": np.full(len(subset), calendar.month_name[month]),
+                                      "rank": rank})
+
+        cds_monthly_dict.update({calendar.month_name[month]: cds_month})
+
+    return cds_monthly_dict
 
 
-def monthly_trend(da, month, reference_period):
-    # Select the subset of the data for the given month, and drop any values that are nans.
-    subset = da.sel(time=da.time.dt.month.isin(month)).dropna("time")
+def calculate_all_months(da):
+    # Create a ColumnDataSource for plotting the line with all months in the monthly plot.
 
-    # Set the x-values to the years.
-    x = subset.time.dt.year.values
+    x_values_all_months = da.time.dt.year.values + ((da.time.dt.month.values - 1) / 12)
+    index_values = da.values
 
-    # In order to calculate a linear regression with numpy we need to add a column of ones to the right of the x-values.
-    A = np.vstack([x, np.ones(len(x))]).T
+    return ColumnDataSource({"x": x_values_all_months, "index_values": index_values})
 
-    # Set the y-values to the index values.
-    y = subset.values
 
-    # m is the coefficient, and c is the constant.
-    m, c = np.linalg.lstsq(A, y, rcond=None)[0]
+def monthly_trend(da, reference_period):
+    # Find which months the dataarray contains and create a dictionary to store the ColumnDataSources.
+    months = np.unique(da.time.dt.month)
+    monthly_trend_dict = {}
 
-    # Calculate index values for the start and end of the trend line.
-    first_year = (m * x[0]) + c
-    last_year = (m * x[-1]) + c
+    for month in months:
+        subset = da.sel(time=da.time.dt.month.isin(month)).dropna("time")
 
-    # Create a CDS for the trend line.
-    cds_trend = ColumnDataSource({"year": [x[0], x[-1]], "start_end_line": [first_year, last_year]})
+        # Set the x-values to the years.
+        x = subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12)
 
-    # Get the absolute trend in thousands of square kilometers per year.
-    absolute_trend = m * 1000
+        # In order to calculate a linear regression with numpy we need to add a column of ones to the right of the
+        # x-values.
+        A = np.vstack([x, np.ones(len(x))]).T
 
-    # Create a new subset only containing the years of the reference period, and drop nan values.
-    start_year = reference_period[0:4]
-    end_year = reference_period[5:9]
-    reference_period_subset = subset.sel(time=slice(start_year, end_year)).dropna("time")
+        # Set the y-values to the index values.
+        y = subset.values
 
-    reference_period_index_mean = reference_period_subset.mean().values
-    relative_means = 100 * (subset.values - reference_period_index_mean) / reference_period_index_mean
+        # m is the coefficient, and c is the constant.
+        m, c = np.linalg.lstsq(A, y, rcond=None)[0]
 
-    # Again, m is the coefficient, and c is the constant.
-    m, c = np.linalg.lstsq(A, relative_means, rcond=None)[0]
+        # Calculate index values for all years.
+        index_values = m * x + c
 
-    # Get the relative trend coefficient and convert it to per decade.
-    relative_trend = 10 * m
+        # Get the absolute trend in thousands of square kilometers per year.
+        absolute_trend = m * 1000
 
-    return cds_trend, absolute_trend, relative_trend
+        # Create a new subset only containing the years of the reference period, and drop nan values.
+        start_year = reference_period[0:4]
+        end_year = reference_period[5:9]
+        reference_period_subset = subset.sel(time=slice(start_year, end_year)).dropna("time")
+
+        reference_period_index_mean = reference_period_subset.mean().values
+        relative_means = 100 * (subset.values - reference_period_index_mean) / reference_period_index_mean
+
+        # Again, m is the coefficient, and c is the constant.
+        m, c = np.linalg.lstsq(A, relative_means, rcond=None)[0]
+
+        # Get the relative trend coefficient and convert it to per decade.
+        relative_trend = 10 * m
+
+        # Create a CDS for the trend line.
+        cds_trend = ColumnDataSource({"x": x,
+                                      "start_end_line": index_values,
+                                      "month": np.full(x.size, calendar.month_name[month]),
+                                      "abs_trend": np.full(x.size, absolute_trend),
+                                      "rel_trend": np.full(x.size, relative_trend),
+                                      "ref_period": np.full(x.size, reference_period)})
+
+        monthly_trend_dict.update({calendar.month_name[month]: cds_trend})
+
+    return monthly_trend_dict
 
 
 def find_yearly_min_max(da_converted, fill_colors_dict):

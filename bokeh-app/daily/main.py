@@ -158,8 +158,11 @@ try:
     colors_dict = tk.find_line_colors(data_years, color_scale_selector.value)
     cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
 
+    # We don't want the title to contain the version number.
+    trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+
     # Plot the figure and make sure that it uses all available space.
-    plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save")
+    plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save")
     plot.sizing_mode = "stretch_both"
 
     # Plot the reference period climatology (percentiles and median).
@@ -433,9 +436,9 @@ try:
 
     # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
     if extracted_data["ds_version"] == "v2p1":
-        version_label = extracted_data["ds_version"]
+        version_label = "v2.1"
     elif extracted_data["ds_version"] == "v3p0":
-        version_label = extracted_data["ds_version"] + " (test version)"
+        version_label = "v3.0 (test version)"
 
     label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
                  f"min/max for {first_year}-{second_to_last_year}\n" \
@@ -684,7 +687,8 @@ try:
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
                 # Update the plot title and x-axis label.
-                plot.title.text = extracted_data["title"]
+                trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+                plot.title.text = trimmed_title
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
                 # Find the day of year for the average minimum and maximum values. These are global variables because

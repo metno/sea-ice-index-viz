@@ -1,6 +1,6 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, Paragraph, ColumnDataSource, Legend
+from bokeh.models import HoverTool, Paragraph, Legend, Label
 import logging
 import param
 import calendar
@@ -96,7 +96,10 @@ try:
                                                   VersionUrlParameter.value)
     da = extracted_data["da"]
 
-    plot = figure(title=extracted_data["title"], tools="pan, wheel_zoom, box_zoom, save, reset")
+    # We don't want the title to contain the version number.
+    trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+
+    plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save, reset")
     plot.sizing_mode = "stretch_both"
 
     legend_list = []
@@ -195,6 +198,28 @@ try:
 
     plot.add_tools(HoverTool(renderers=trend_line_glyph_list, tooltips=TOOLTIPS, toggleable=False))
 
+    # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
+    if extracted_data["ds_version"] == "v2p1":
+        version_label = "v2.1"
+    elif extracted_data["ds_version"] == "v3p0":
+        version_label = "v3.0 (test version)"
+
+    last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)
+
+    label_text = f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                 f"Latest monthly data: {last_month_string}"
+
+    info_label = Label(x=5,
+                       y=5,
+                       x_units='screen',
+                       y_units='screen',
+                       text=label_text,
+                       text_font_size='12px',
+                       text_color='black')
+
+    plot.add_layout(info_label)
+
     # Use a grid layout.
     gspec = pn.GridSpec(sizing_mode="stretch_both")
 
@@ -233,8 +258,15 @@ try:
                     cds_monthly_trend_dict[month].data.update(new_cds_monthly_trend_dict[month].data)
 
                 # Update the plot title and x-axis label.
-                plot.title.text = extracted_data["title"]
+                trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+                plot.title.text = trimmed_title
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+
+                last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)
+                label_text = f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                             "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                             f"Latest monthly data: {last_month_string}"
+                info_label.text = label_text
 
             except OSError:
                 # Raise an exception with a custom error message that will be displayed in error prompt for the user.

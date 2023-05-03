@@ -105,7 +105,7 @@ try:
     legend_list = []
 
     cds_all_months = tk.calculate_all_months(da)
-    all_months_glyph = plot.line(x="x", y="index_values", source=cds_all_months, line_width=2, line_color="grey")
+    all_months_glyph = plot.line(x="x", y="index_values", source=cds_all_months, line_width=1.5, line_color="grey")
     all_months_glyph.visible = False
     legend_list.append(("Monthly", [all_months_glyph]))
 
@@ -119,6 +119,12 @@ try:
     trend_line_glyph_list = []
     cds_trend_list = []
     for month, cds_month in cds_monthly_dict.items():
+        line_glyph = plot.line(x="x",
+                               y="index_values",
+                               source=cds_month,
+                               line_width=2,
+                               color=colors_dict[month])
+
         circle_glyph = plot.circle(x="x",
                                    y="index_values",
                                    source=cds_month,
@@ -136,10 +142,11 @@ try:
 
         trend_line_glyph_list.append(trend_line_glyph)
 
-        legend_list.append((month, [circle_glyph, trend_line_glyph]))
+        legend_list.append((month, [line_glyph, circle_glyph, trend_line_glyph]))
 
         if month != current_month:
             # Hide all months except the current one.
+            line_glyph.visible = False
             circle_glyph.visible = False
             trend_line_glyph.visible = False
 
@@ -198,7 +205,6 @@ try:
 
     plot.add_tools(HoverTool(renderers=trend_line_glyph_list, tooltips=TOOLTIPS, toggleable=False))
 
-    # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
     elif extracted_data["ds_version"] == "v3p0":

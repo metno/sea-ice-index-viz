@@ -116,7 +116,7 @@ def calculate_individual_years(da, da_interpolated):
     return cds_dict
 
 
-def calculate_monthly(da):
+def calculate_monthly(da, month_offset=True):
     # Find which months are in the data.
     months = np.unique(da.time.dt.month)
 
@@ -130,7 +130,12 @@ def calculate_monthly(da):
         # Calculate the ranks of the index values. The lowest value has a rank of 1.
         rank = subset.rank("time").values
 
-        cds_month = ColumnDataSource({"x": subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12),
+        if month_offset:
+            x = subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12)
+        else:
+            x = subset.time.dt.year.values
+
+        cds_month = ColumnDataSource({"x": x,
                                       "index_values": subset.values,
                                       "year": subset.time.dt.year.values.astype(str),
                                       "month": np.full(len(subset), calendar.month_name[month]),
@@ -150,7 +155,7 @@ def calculate_all_months(da):
     return ColumnDataSource({"x": x_values_all_months, "index_values": index_values})
 
 
-def monthly_trend(da, reference_period):
+def monthly_trend(da, reference_period, month_offset=True):
     # Find which months the dataarray contains and create a dictionary to store the ColumnDataSources.
     months = np.unique(da.time.dt.month)
     monthly_trend_dict = {}
@@ -159,7 +164,10 @@ def monthly_trend(da, reference_period):
         subset = da.sel(time=da.time.dt.month.isin(month)).dropna("time")
 
         # Set the x-values to the years.
-        x = subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12)
+        if month_offset:
+            x = subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12)
+        else:
+            x = subset.time.dt.year.values
 
         # In order to calculate a linear regression with numpy we need to add a column of ones to the right of the
         # x-values.

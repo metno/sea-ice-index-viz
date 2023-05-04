@@ -110,8 +110,8 @@ try:
     legend_list.append(("Monthly", [all_months_glyph]))
 
     colors_dict = tk.find_line_colors(calendar.month_name[1:], "viridis")
-    cds_monthly_dict = tk.calculate_monthly(da)
-    cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value)
+    cds_monthly_dict = tk.calculate_monthly(da, month_offset=False)
+    cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value, month_offset=False)
 
     current_month = datetime.now().strftime("%B")
 
@@ -257,8 +257,13 @@ try:
                 new_cds_line_all_data = tk.calculate_all_months(da)
                 cds_all_months.data.update(new_cds_line_all_data.data)
 
-                new_cds_monthly_dict = tk.calculate_monthly(da)
-                new_cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value)
+                if all_months_glyph.visible:
+                    month_offset = True
+                else:
+                    month_offset = False
+
+                new_cds_monthly_dict = tk.calculate_monthly(da, month_offset)
+                new_cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value, month_offset)
                 for month, new_cds_month in new_cds_monthly_dict.items():
                     cds_monthly_dict[month].data.update(new_cds_month.data)
                     cds_monthly_trend_dict[month].data.update(new_cds_monthly_trend_dict[month].data)
@@ -289,11 +294,20 @@ try:
                 circle_glyph.glyph.line_color = color
                 trend_line_glyph.glyph.line_color = color
 
+
+    def linking_callback(attr, old, new):
+        """Create a wrapper function to use Bokeh callback functionality with a Panel callback function."""
+        update_data(None)
+
     # Run callbacks when widget values change.
     index_selector.param.watch(update_data, "value")
     area_selector.param.watch(update_data, "value")
     reference_period_selector.param.watch(update_data, "value")
     color_scale_selector.param.watch(update_color_map, "value")
+
+    # Update the plot so that the monthly data points and trend lines are plotted with a monthly offset whenever the
+    # line that runs through all data points is visible.
+    all_months_glyph.on_change("visible", linking_callback)
 
     gspec.servable()
 

@@ -115,6 +115,7 @@ try:
 
     current_month = datetime.now().strftime("%B")
 
+    line_glyph_list = []
     circle_glyph_list = []
     trend_line_glyph_list = []
     cds_trend_list = []
@@ -124,6 +125,8 @@ try:
                                source=cds_month,
                                line_width=2,
                                color=colors_dict[month])
+
+        line_glyph_list.append(line_glyph)
 
         circle_glyph = plot.circle(x="x",
                                    y="index_values",
@@ -287,9 +290,11 @@ try:
     def update_color_map(event):
         with pn.param.set_values(gspec, loading=True):
             colors_dict = tk.find_line_colors(calendar.month_name[1:], color_scale_selector.value)
-            for circle_glyph, trend_line_glyph, color in zip(circle_glyph_list,
-                                                             trend_line_glyph_list,
-                                                             colors_dict.values()):
+            for line_glyph, circle_glyph, trend_line_glyph, color in zip(line_glyph_list,
+                                                                         circle_glyph_list,
+                                                                         trend_line_glyph_list,
+                                                                         colors_dict.values()):
+                line_glyph.glyph.line_color = color
                 circle_glyph.glyph.fill_color = color
                 circle_glyph.glyph.line_color = color
                 trend_line_glyph.glyph.line_color = color

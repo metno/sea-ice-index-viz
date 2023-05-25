@@ -171,8 +171,8 @@ try:
     colors_dict = tk.find_line_colors(data_years, color_scale_selector.value)
     cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
 
-    # We don't want the title to contain the version number.
-    trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+    # Trim the title to not contain the version number, and to deduplicate "Sea" substrings.
+    trimmed_title = tk.trim_title(extracted_data["title"])
 
     # Plot the figure and make sure that it uses all available space.
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save")
@@ -698,7 +698,7 @@ try:
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
                 # Update the plot title and x-axis label.
-                trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+                trimmed_title = tk.trim_title(extracted_data["title"])
                 plot.title.text = trimmed_title
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 

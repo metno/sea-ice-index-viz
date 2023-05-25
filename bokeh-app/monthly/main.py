@@ -247,9 +247,15 @@ try:
                        reference_period_selector,
                        color_scale_selector)
 
-    # Divide the layout into 5 columns. The plot uses 4 columns while the widgets get the last column.
-    gspec[0, 0:4] = pn.pane.Bokeh(plot, sizing_mode="stretch_both")
-    gspec[0, 4] = inputs
+
+    def on_load():
+        # Divide the layout into 5 columns. The plot uses 4 columns while the widgets get the last column.
+        gspec[0, 0:4] = pn.pane.Bokeh(plot, sizing_mode="stretch_both")
+        gspec[0, 4] = inputs
+
+    # There is currently a bug in Bokeh 3.1.1 where it incorrectly calculates the amount of available space. To work
+    # around this we load the gridspec elements after the page has finished loading.
+    pn.state.onload(on_load)
 
 
     def update_data(event):

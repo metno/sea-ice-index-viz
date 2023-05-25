@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import toolkit as tk  # noqa: E402
 
 # Specify a loading spinner wheel to display when data is being loaded.
-pn.extension(loading_spinner='dots', loading_color='#696969', sizing_mode="stretch_both")
+pn.extension(loading_spinner='dots', loading_color='#696969')
 
 
 def exception_handler(ex):
@@ -31,7 +31,10 @@ class VersionUrlParameter(param.Parameterized):
 pn.state.location.sync(VersionUrlParameter, {"value": "version"})
 
 # Add dropdown menu for index selection, and sync to url parameter.
-index_selector = pn.widgets.Select(name="Index:", options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"}, value="sie")
+index_selector = pn.widgets.Select(name="Index:",
+                                   options={"Sea Ice Extent": "sie", "Sea Ice Area": "sia"},
+                                   value="sie",
+                                   sizing_mode="stretch_width")
 pn.state.location.sync(index_selector, {"value": "index"})
 
 # Add dropdown menu for area selection, and sync to url parameter.
@@ -60,20 +63,26 @@ area_groups = {
     }
 }
 
-area_selector = pn.widgets.Select(name="Area:", groups=area_groups, value="nh")
+area_selector = pn.widgets.Select(name="Area:",
+                                  groups=area_groups,
+                                  value="nh",
+                                  sizing_mode="stretch_width")
 pn.state.location.sync(area_selector, {"value": "area"})
 
 # Add a dropdown menu for selecting the reference period of the percentile and median plots, and sync to url parameter.
 reference_period_selector = pn.widgets.Select(name="Reference period of percentiles and median:",
                                               options=["1981-2010", "1991-2020"],
-                                              value="1981-2010")
+                                              value="1981-2010",
+                                              sizing_mode="stretch_width")
 pn.state.location.sync(reference_period_selector, {"value": "ref_period"})
 
 # Create a dropdown button with plot shortcuts, and sync to url parameter.
-plot_shortcuts = pn.widgets.MenuButton(name="Plot shortcuts", items=[("Erase all", "erase_all"),
-                                                                     ("Show all", "show_all"),
-                                                                     ("Last 5 years", "last_5_years"),
-                                                                     ("2 years", "2_years")])
+plot_shortcuts = pn.widgets.MenuButton(name="Plot shortcuts",
+                                       items=[("Erase all", "erase_all"),
+                                              ("Show all", "show_all"),
+                                              ("Last 5 years", "last_5_years"),
+                                              ("2 years", "2_years")],
+                                       sizing_mode="stretch_width")
 pn.state.location.sync(plot_shortcuts, {"clicked": "shortcut"})
 
 # Add a dropdown menu for different preselected zoom levels.
@@ -81,7 +90,8 @@ zoom_shortcuts = pn.widgets.MenuButton(name="Zoom shortcuts:",
                                        items=[("Year", "year"),
                                               ("Two months centred on latest observation", "current"),
                                               ("Min extent", "min_extent"),
-                                              ("Max extent", "max_extent")])
+                                              ("Max extent", "max_extent")],
+                                       sizing_mode="stretch_width")
 
 # Initialise the zoom shortcut state.
 zoom_shortcuts.clicked = "year"
@@ -105,7 +115,10 @@ color_groups = {
     }
 }
 
-color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:", groups=color_groups, value="viridis")
+color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:",
+                                         groups=color_groups,
+                                         value="viridis",
+                                         sizing_mode="stretch_width")
 pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
@@ -605,15 +618,13 @@ try:
                        reference_period_selector,
                        plot_shortcuts,
                        zoom_shortcuts,
-                       color_scale_selector,
-                       sizing_mode="stretch_both")
+                       color_scale_selector)
 
     # Use a grid layout.
     gspec = pn.GridSpec(sizing_mode="stretch_both")
 
-    # Divide the layout into two rows and 4 columns. The plot takes up 2 rows and 3 columns, while the input widgets
-    # take up 1 row and 1 column.
-    gspec[0:2, :3] = pn.pane.Bokeh(plot, sizing_mode="stretch_both")
+    # Divide the layout into 5 columns. The plot uses 4 columns while the widgets get the last column.
+    gspec[0, 0:4] = pn.pane.Bokeh(plot)
     gspec[0, 4] = inputs
 
 

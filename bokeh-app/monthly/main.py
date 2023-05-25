@@ -106,8 +106,8 @@ try:
                                                   VersionUrlParameter.value)
     da = extracted_data["da"]
 
-    # We don't want the title to contain the version number.
-    trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+    # Trim the title to not contain a "Mean" substring, the version number, and to deduplicate "Sea" substrings.
+    trimmed_title = tk.trim_title(extracted_data["title"])
 
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save, reset")
     plot.sizing_mode = "stretch_both"
@@ -280,7 +280,7 @@ try:
                     cds_monthly_trend_dict[month].data.update(new_cds_monthly_trend_dict[month].data)
 
                 # Update the plot title and x-axis label.
-                trimmed_title = extracted_data["title"].replace(" (v2p1)", "").replace(" (v3p0)", "")
+                trimmed_title = tk.trim_title(extracted_data["title"])
                 plot.title.text = trimmed_title
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 

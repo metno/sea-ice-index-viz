@@ -6,3 +6,4 @@ bokeh
 numpy
 matplotlib
 cmcrameri
+requests

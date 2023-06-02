@@ -8,10 +8,9 @@ import calendar
 
 
 def download_and_extract_data(index, area, frequency, version):
-    url_prefix = "https://thredds.met.no/thredds/dodsC/metusers/thomasl"
-    version_dict = {"v2p1": "OSI420_moreRegions", "v3p0test": "OSI420_BetaFromSICv3"}
+    url_prefix = "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/"
 
-    url = f"{url_prefix}/{version_dict[version]}/{area}/osisaf_{area}_{index}_{frequency}.nc"
+    url = f"{url_prefix}/{version}/{area}/osisaf_{area}_{index}_{frequency}.nc"
 
     # Open the dataset with cache set to false, otherwise the plots will keep showing old data when updated data is
     # available.

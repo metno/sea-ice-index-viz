@@ -99,6 +99,12 @@ color_scale_selector = pn.widgets.Select(name="Colour map:",
                                          sizing_mode="stretch_width")
 pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
+trend_selector = pn.widgets.Select(name="Trend line:",
+                                   options={"Full": "full", "Decadal": "decadal"},
+                                   value="full",
+                                   sizing_mode="stretch_width")
+pn.state.location.sync(trend_selector, {"value": "trend"})
+
 try:
     extracted_data = tk.download_and_extract_data(index_selector.value,
                                                   area_selector.value,
@@ -112,23 +118,27 @@ try:
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save, reset")
     plot.sizing_mode = "stretch_both"
 
-    legend_list = []
+    legend_collection = []
 
     cds_all_months = tk.calculate_all_months(da)
     all_months_glyph = plot.line(x="x", y="index_values", source=cds_all_months, line_width=1.5, line_color="grey")
     all_months_glyph.visible = False
-    legend_list.append(("Monthly", [all_months_glyph]))
+    legend_collection.append(("Monthly", [all_months_glyph]))
 
     colors_dict = tk.find_line_colors(calendar.month_name[1:], "viridis")
     cds_monthly_dict = tk.calculate_monthly(da, month_offset=False)
-    cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value, month_offset=False)
+    reference_period_start = reference_period_selector.value[0:4]
+    reference_period_end = reference_period_selector.value[5:9]
+    trends = tk.Trends(da, reference_period_start, reference_period_end, False)
+    cds_monthly_trend_dict = trends.calculate_monthly_trend()
+    cds_decadal_trend_dict = trends.calculate_decadal_trend(edge_padding=0.1)
 
     current_month = datetime.now().strftime("%B")
 
-    line_glyph_list = []
-    circle_glyph_list = []
-    trend_line_glyph_list = []
-    cds_trend_list = []
+    line_glyphs = []
+    circle_glyphs = []
+    trend_line_glyphs = []
+    decade_trend_line_glyphs = []
     for month, cds_month in cds_monthly_dict.items():
         line_glyph = plot.line(x="x",
                                y="index_values",
@@ -136,7 +146,7 @@ try:
                                line_width=2,
                                color=colors_dict[month])
 
-        line_glyph_list.append(line_glyph)
+        line_glyphs.append(line_glyph)
 
         circle_glyph = plot.circle(x="x",
                                    y="index_values",
@@ -145,25 +155,46 @@ try:
                                    line_width=2,
                                    color=colors_dict[month])
 
-        circle_glyph_list.append(circle_glyph)
+        circle_glyphs.append(circle_glyph)
 
-        trend_line_glyph = plot.line(x="x",
-                                     y="start_end_line",
+        trend_line_glyph = plot.line(x="year",
+                                     y="trend_line_values",
                                      source=cds_monthly_trend_dict[month],
                                      line_color=colors_dict[month],
                                      line_width=3)
 
-        trend_line_glyph_list.append(trend_line_glyph)
+        trend_line_glyphs.append(trend_line_glyph)
 
-        legend_list.append((month, [line_glyph, circle_glyph, trend_line_glyph]))
+        decade_trend_glyphs_one_month = []
+        for decadal_cds_unpacked in cds_decadal_trend_dict[month].values():
+            decadal_trend_glyph = plot.line(x="year",
+                                            y="trend_line_values",
+                                            source=decadal_cds_unpacked,
+                                            line_color=colors_dict[month],
+                                            line_width=3)
+            decade_trend_glyphs_one_month.append(decadal_trend_glyph)
+
+        decade_trend_line_glyphs.append(decade_trend_glyphs_one_month)
+
+        if trend_selector.value == "full":
+            legend_collection.append((month, [line_glyph, circle_glyph, trend_line_glyph]))
+            if month == current_month:
+                for one_decade_glyph in decade_trend_glyphs_one_month:
+                    one_decade_glyph.visible = False
+        elif trend_selector.value == "decadal":
+            legend_collection.append((month, [line_glyph, circle_glyph] + decade_trend_glyphs_one_month))
+            if month == current_month:
+                trend_line_glyph.visible = False
 
         if month != current_month:
             # Hide all months except the current one.
             line_glyph.visible = False
             circle_glyph.visible = False
             trend_line_glyph.visible = False
+            for one_decade_glyph in decade_trend_glyphs_one_month:
+                one_decade_glyph.visible = False
 
-    legend = Legend(items=legend_list, location="top_center")
+    legend = Legend(items=legend_collection, location="top_center")
     legend.spacing = 1
     plot.add_layout(legend, "right")
     plot.legend.click_policy = "hide"
@@ -191,7 +222,7 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=circle_glyph_list, tooltips=TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=circle_glyphs, tooltips=TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
     TOOLTIPS = """
@@ -202,21 +233,47 @@ try:
                 </div>
                 <div>
                     <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
-                    <span style="font-size: 12px;">@abs_trend{+0.0}</span>
+                    <span style="font-size: 12px;">@absolute_trend{+0.0}</span>
                     <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
                 </div>
                 <div>
                     <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
-                    <span style="font-size: 12px;">@rel_trend{+0.0}% decade<sup>-1</sup></span>
+                    <span style="font-size: 12px;">@relative_trend{+0.0}% decade<sup>-1</sup></span>
                 </div>
                 <div>
                     <span style="font-size: 12px; font-weight: bold">Reference period:</span>
-                    <span style="font-size: 12px;">@ref_period</span>
+                    <span style="font-size: 12px;">@reference_period</span>
                 </div>
             </div>
             """
 
-    plot.add_tools(HoverTool(renderers=trend_line_glyph_list, tooltips=TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=trend_line_glyphs, tooltips=TOOLTIPS, toggleable=False))
+
+    # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
+    TOOLTIPS = """
+                <div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Month:</span>
+                        <span style="font-size: 12px;">@month (@decade)</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
+                        <span style="font-size: 12px;">@absolute_trend{+0.0}</span>
+                        <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
+                        <span style="font-size: 12px;">@relative_trend{+0.0}% decade<sup>-1</sup></span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Reference period:</span>
+                        <span style="font-size: 12px;">@reference_period</span>
+                    </div>
+                </div>
+                """
+
+    decade_trend_glyphs_flattened = sum(decade_trend_line_glyphs, [])
+    plot.add_tools(HoverTool(renderers=decade_trend_glyphs_flattened, tooltips=TOOLTIPS, toggleable=False))
 
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
@@ -245,7 +302,8 @@ try:
     inputs = pn.Column(index_selector,
                        area_selector,
                        reference_period_selector,
-                       color_scale_selector)
+                       color_scale_selector,
+                       trend_selector)
 
 
     def on_load():
@@ -280,10 +338,18 @@ try:
                     month_offset = False
 
                 new_cds_monthly_dict = tk.calculate_monthly(da, month_offset)
-                new_cds_monthly_trend_dict = tk.monthly_trend(da, reference_period_selector.value, month_offset)
+                reference_period_start = reference_period_selector.value[0:4]
+                reference_period_end = reference_period_selector.value[5:9]
+                trends = tk.Trends(da, reference_period_start, reference_period_end, month_offset)
+                new_cds_monthly_trend_dict = trends.calculate_monthly_trend()
+                new_cds_decadal_trend_dict = trends.calculate_decadal_trend(edge_padding=0.1)
+
                 for month, new_cds_month in new_cds_monthly_dict.items():
                     cds_monthly_dict[month].data.update(new_cds_month.data)
                     cds_monthly_trend_dict[month].data.update(new_cds_monthly_trend_dict[month].data)
+                    for decadal_cds_unpacked, new_decadal_cds_unpacked in zip(cds_decadal_trend_dict[month].values(),
+                                                                              new_cds_decadal_trend_dict[month].values()):
+                        decadal_cds_unpacked.data.update(new_decadal_cds_unpacked.data)
 
                 # Update the plot title and x-axis label.
                 trimmed_title = tk.trim_title(extracted_data["title"])
@@ -304,14 +370,44 @@ try:
     def update_color_map(event):
         with pn.param.set_values(gspec, loading=True):
             colors_dict = tk.find_line_colors(calendar.month_name[1:], color_scale_selector.value)
-            for line_glyph, circle_glyph, trend_line_glyph, color in zip(line_glyph_list,
-                                                                         circle_glyph_list,
-                                                                         trend_line_glyph_list,
-                                                                         colors_dict.values()):
+            for line_glyph, circle_glyph, trend_line_glyph, decade_trend_glyphs_one_month, color in zip(line_glyphs,
+                                                                                                        circle_glyphs,
+                                                                                                        trend_line_glyphs,
+                                                                                                        decade_trend_line_glyphs,
+                                                                                                        colors_dict.values()):
                 line_glyph.glyph.line_color = color
                 circle_glyph.glyph.fill_color = color
                 circle_glyph.glyph.line_color = color
                 trend_line_glyph.glyph.line_color = color
+                for decade_trend_glyph in decade_trend_glyphs_one_month:
+                    decade_trend_glyph.glyph.line_color = color
+
+
+    def update_legend(event):
+        with pn.param.set_values(gspec, loading=True):
+            legend_collection = [("Monthly", [all_months_glyph])]
+
+            if trend_selector.value == "full":
+                for i, month in enumerate(calendar.month_name[1:]):
+                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i], trend_line_glyphs[i]]))
+
+                    if decade_trend_line_glyphs[i][0].visible:
+                        for one_decade_trend_line_glyph in decade_trend_line_glyphs[i]:
+                            one_decade_trend_line_glyph.visible = False
+                        trend_line_glyphs[i].visible = True
+
+                legend.items = legend_collection
+
+            elif trend_selector.value == "decadal":
+                for i, month in enumerate(calendar.month_name[1:]):
+                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i]] + decade_trend_line_glyphs[i]))
+
+                    if trend_line_glyphs[i].visible:
+                        trend_line_glyphs[i].visible = False
+                        for one_decade_trend_line_glyph in decade_trend_line_glyphs[i]:
+                            one_decade_trend_line_glyph.visible = True
+
+                legend.items = legend_collection
 
 
     def linking_callback(attr, old, new):
@@ -323,6 +419,7 @@ try:
     area_selector.param.watch(update_data, "value")
     reference_period_selector.param.watch(update_data, "value")
     color_scale_selector.param.watch(update_color_map, "value")
+    trend_selector.param.watch(update_legend, "value")
 
     # Update the plot so that the monthly data points and trend lines are plotted with a monthly offset whenever the
     # line that runs through all data points is visible.

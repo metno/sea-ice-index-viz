@@ -155,61 +155,113 @@ def calculate_all_months(da):
     return ColumnDataSource({"x": x_values_all_months, "index_values": index_values})
 
 
-def monthly_trend(da, reference_period, month_offset=True):
-    # Find which months the dataarray contains and create a dictionary to store the ColumnDataSources.
-    months = np.unique(da.time.dt.month)
-    monthly_trend_dict = {}
+class Trends:
+    def __init__(self, da, reference_period_start, reference_period_end, month_offset):
+        self.da = da.dropna("time")
+        self.reference_period_start = str(reference_period_start)
+        self.reference_period_end = str(reference_period_end)
+        self.month_offset = month_offset
 
-    for month in months:
-        subset = da.sel(time=da.time.dt.month.isin(month)).dropna("time")
+        self.months = np.unique(da.time.dt.month)
 
-        # Set the x-values to the years.
-        if month_offset:
-            x = subset.time.dt.year.values + ((subset.time.dt.month.values - 1) / 12)
+        # Include all complete decades.
+        decade_indices = np.argwhere(self.da.time.dt.year.values % 10 == 0).flatten()
+        decade_start_years = np.unique(self.da.time.dt.year.values[decade_indices])
+        self.decades = [(str(start_year), str(start_year + 9)) for start_year in decade_start_years[:-1]]
+
+    def _find_regression_coefficients(self, da):
+        if self.month_offset:
+            year = da.time.dt.year.values + ((da.time.dt.month.values - 1) / 12)
         else:
-            x = subset.time.dt.year.values
+            year = da.time.dt.year.values
 
         # In order to calculate a linear regression with numpy we need to add a column of ones to the right of the
         # x-values.
-        A = np.vstack([x, np.ones(len(x))]).T
+        year_stacked = np.vstack([year, np.ones(len(year))]).T
 
-        # Set the y-values to the index values.
-        y = subset.values
+        index_values = da.values
 
-        # m is the coefficient, and c is the constant.
-        m, c = np.linalg.lstsq(A, y, rcond=None)[0]
+        slope, constant = np.linalg.lstsq(year_stacked, index_values, rcond=None)[0]
 
-        # Calculate index values for all years.
-        index_values = m * x + c
+        return slope, constant
 
-        # Get the absolute trend in thousands of square kilometers per year.
-        absolute_trend = m * 1000
+    def _find_trends(self, da, da_reference, edge_padding=None):
+        if self.month_offset:
+            year = da.time.dt.year.values + ((da.time.dt.month.values - 1) / 12)
+        else:
+            year = da.time.dt.year.values
 
-        # Create a new subset only containing the years of the reference period, and drop nan values.
-        start_year = reference_period[0:4]
-        end_year = reference_period[5:9]
-        reference_period_subset = subset.sel(time=slice(start_year, end_year)).dropna("time")
+        if edge_padding:
+            year = year.astype(float)
+            year[0] = year[0] + edge_padding
+            year[-1] = year[-1] + (1 - edge_padding)
 
-        reference_period_index_mean = reference_period_subset.mean().values
-        relative_means = 100 * (subset.values - reference_period_index_mean) / reference_period_index_mean
+        slope, constant = self._find_regression_coefficients(da)
+        trend_line_values = slope * year + constant
 
-        # Again, m is the coefficient, and c is the constant.
-        m, c = np.linalg.lstsq(A, relative_means, rcond=None)[0]
+        absolute_trend = 1000 * slope
 
-        # Get the relative trend coefficient and convert it to per decade.
-        relative_trend = 10 * m
+        reference_period_index_mean = da_reference.mean().values
+        relative_means = 100 * (da.values - reference_period_index_mean) / reference_period_index_mean
+        da.values = relative_means
 
-        # Create a CDS for the trend line.
-        cds_trend = ColumnDataSource({"x": x,
-                                      "start_end_line": index_values,
-                                      "month": np.full(x.size, calendar.month_name[month]),
-                                      "abs_trend": np.full(x.size, absolute_trend),
-                                      "rel_trend": np.full(x.size, relative_trend),
-                                      "ref_period": np.full(x.size, reference_period)})
+        relative_slope, _ = self._find_regression_coefficients(da)
+        relative_trend = 10 * relative_slope
 
-        monthly_trend_dict.update({calendar.month_name[month]: cds_trend})
+        return year, trend_line_values, absolute_trend, relative_trend
 
-    return monthly_trend_dict
+    def calculate_monthly_trend(self):
+        da = self.da
+
+        monthly_trends = {}
+        for month in self.months:
+            subset = da.sel(time=da.time.dt.month.isin(month))
+            reference_subset = subset.sel(time=slice(self.reference_period_start, self.reference_period_end))
+
+            year, trend_line_values, absolute_trend, relative_trend = self._find_trends(subset, reference_subset)
+            reference_period = f"{self.reference_period_start}-{self.reference_period_end}"
+
+            cds_trend = ColumnDataSource({"year": year,
+                                          "trend_line_values": trend_line_values,
+                                          "month": np.full(year.size, calendar.month_name[month]),
+                                          "absolute_trend": np.full(year.size, absolute_trend),
+                                          "relative_trend": np.full(year.size, relative_trend),
+                                          "reference_period": np.full(year.size, reference_period)})
+
+            monthly_trends.update({calendar.month_name[month]: cds_trend})
+
+        return monthly_trends
+
+    def calculate_decadal_trend(self, edge_padding):
+        da = self.da
+
+        monthly_trends = {}
+        for month in self.months:
+            month_subset = da.sel(time=da.time.dt.month.isin(month))
+            reference_subset = month_subset.sel(time=slice(self.reference_period_start, self.reference_period_end))
+
+            decadal_trends = {}
+            for decade_start, decade_end in self.decades:
+                decade_subset = month_subset.sel(time=slice(decade_start, decade_end))
+
+                year, trend_line_values, absolute_trend, relative_trend = self._find_trends(decade_subset,
+                                                                                            reference_subset,
+                                                                                            edge_padding)
+                reference_period = f"{self.reference_period_start}-{self.reference_period_end}"
+                decade = f"{decade_start}-{decade_end}"
+
+                cds_trend = ColumnDataSource({"year": year,
+                                              "trend_line_values": trend_line_values,
+                                              "month": np.full(year.size, calendar.month_name[month]),
+                                              "decade": np.full(year.size, decade),
+                                              "absolute_trend": np.full(year.size, absolute_trend),
+                                              "relative_trend": np.full(year.size, relative_trend),
+                                              "reference_period": np.full(year.size, reference_period)})
+
+                decadal_trends.update({decade: cds_trend})
+            monthly_trends.update({calendar.month_name[month]: decadal_trends})
+
+        return monthly_trends
 
 
 def find_yearly_min_max(da_converted, fill_colors_dict):

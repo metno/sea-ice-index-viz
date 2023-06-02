@@ -52,10 +52,10 @@ area_groups = {
         "Beaufort Sea": "beau",
         "Chukchi Sea": "chuk",
         "East Siberian Sea": "ess",
-        "Fram Strait-NP": "fram",
+        "Fram Strait": "fram",
         "Kara Sea": "kara",
         "Laptev Sea": "lap",
-        "Svalbard-NIS": "sval",
+        "Svalbard": "sval",
     },
     "Southern Hemisphere Regions": {
         "Amundsen-Bellingshausen Sea": "bell",
@@ -277,8 +277,8 @@ try:
 
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
-    elif extracted_data["ds_version"] == "v3p0":
-        version_label = "v3.0 (test version)"
+    elif extracted_data["ds_version"] == "v2p2":
+        version_label = "v2.2"
 
     last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)
 

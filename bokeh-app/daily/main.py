@@ -49,10 +49,10 @@ area_groups = {
         "Beaufort Sea": "beau",
         "Chukchi Sea": "chuk",
         "East Siberian Sea": "ess",
-        "Fram Strait-NP": "fram",
+        "Fram Strait": "fram",
         "Kara Sea": "kara",
         "Laptev Sea": "lap",
-        "Svalbard-NIS": "sval",
+        "Svalbard": "sval",
     },
     "Southern Hemisphere Regions": {
         "Amundsen-Bellingshausen Sea": "bell",
@@ -450,8 +450,8 @@ try:
     # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
-    elif extracted_data["ds_version"] == "v3p0":
-        version_label = "v3.0 (test version)"
+    elif extracted_data["ds_version"] == "v2p2":
+        version_label = "v2.2"
 
     label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
                  f"min/max for {first_year}-{second_to_last_year}\n" \

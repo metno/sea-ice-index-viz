@@ -25,7 +25,7 @@ pn.extension(exception_handler=exception_handler, notifications=True)
 
 # Add a parameter for setting the desired version of the sea ice data, and sync to url parameter.
 class VersionUrlParameter(param.Parameterized):
-    value = param.Parameter("v2p1")
+    value = param.Parameter("v2p2")
 
 
 pn.state.location.sync(VersionUrlParameter, {"value": "version"})

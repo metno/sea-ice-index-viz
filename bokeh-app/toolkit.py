@@ -284,8 +284,9 @@ def find_yearly_min_max(da_converted, fill_colors_dict):
     hovertool_max_date = yearly_max_date.dt.strftime("%Y-%m-%d")
     hovertool_min_date = yearly_min_date.dt.strftime("%Y-%m-%d")
 
-    # Find the rank of the max/min values. Reverse the max rank such that the highest value has a rank of 1.
-    yearly_max_rank = (-yearly_max_index_value).rank("year")
+    # Find the rank of the max/min values. The ranks are such that the lowest value for both min and max has a rank
+    # of 1.
+    yearly_max_rank = yearly_max_index_value.rank("year")
     yearly_min_rank = yearly_min_index_value.rank("year")
 
     cds_yearly_max = ColumnDataSource({"day_of_year": yearly_max_doy.values,

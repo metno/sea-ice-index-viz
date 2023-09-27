@@ -265,7 +265,14 @@ class Trends:
 
 def find_yearly_min_max(da_converted, fill_colors_dict):
     # Find the years we have data for, except the current one. Select the data from those years and group it by year.
-    years = get_list_of_years(da_converted)[:-1]
+    years = get_list_of_years(da_converted)[:-1].tolist()
+
+    # Remove 1978 because the data does not cover the entire year.
+    try:
+        years.remove("1978")
+    except ValueError:
+        pass
+
     da_sliced_and_grouped = da_converted.sel(time=slice(years[0], years[-1])).groupby("time.year")
 
     # Find the yearly max/min date, day of year, and index value.

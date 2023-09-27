@@ -277,14 +277,16 @@ try:
 
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
+        cdr_version = "v2.1"
     elif extracted_data["ds_version"] == "v2p2":
         version_label = "v2.2"
+        cdr_version = "v3"
 
     last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)
 
-    label_text = f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
-                 f"Latest monthly data: {last_month_string}"
+    label_text = f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
+                 "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                 f"Last data point: {last_month_string}"
 
     info_label = Label(x=5,
                        y=5,
@@ -357,9 +359,9 @@ try:
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
                 last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)
-                label_text = f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                             "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
-                             f"Latest monthly data: {last_month_string}"
+                label_text = f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
+                             "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
+                             f"Last data point: {last_month_string}"
                 info_label.text = label_text
 
             except OSError:

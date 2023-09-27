@@ -450,13 +450,15 @@ try:
     # Find the version of the data in order to add it to the label, and give the v3p0 data a custom label.
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
+        cdr_version = "v2.1"
     elif extracted_data["ds_version"] == "v2p2":
         version_label = "v2.2"
+        cdr_version = "v3"
 
     label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \
                  f"min/max for {first_year}-{second_to_last_year}\n" \
-                 f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                 "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+                 f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
+                 "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                  f"Last data point: {last_date_string}"
 
     info_label = Label(x=5,
@@ -601,8 +603,8 @@ try:
                 new_label += f"Min/max for {first_year}-{second_to_last_year}"
 
         new_label += "\n"
-        new_label += f"{version_label} EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
-                     "Source: EUMETSAT OSI SAF (https://osi-saf.eumetsat.int)\n" \
+        new_label += f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
+                     "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                      f"Last data point: {last_date_string}"
 
         info_label.text = new_label

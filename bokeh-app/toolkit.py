@@ -402,11 +402,12 @@ def find_line_colors(years, color):
 
 
 def trim_title(title):
-    no_version_title = title.replace(" (v2p1)", "").replace(" (v3p0)", "")
-    no_mean_title = no_version_title.replace("Mean ", "")
+    new_title = title.replace("(v2p1)", "v2.1").replace("(v2p2)", "v2.2")
+    new_title = new_title.replace("Mean ", "")
+    new_title = new_title.replace(" from EUMETSAT OSI SAF", "")
 
-    if no_mean_title.count("Sea ") > 1:
+    if new_title.count("Sea ") > 1:
         # In case there is more than one Sea substring in the title remove one to deduplicate.
-        no_mean_title = no_mean_title.replace("Sea ", "", 1)
+        new_title = new_title.replace("Sea ", "", 1)
 
-    return no_mean_title
+    return new_title

@@ -62,3 +62,5 @@ The bokeh-server application will be availavble at:
 * When the developments are good enough for a deployment 
 * Massimo merges `prototype` to `main`
 * Massimo updates the bokeh server (https://seaice.metsis-api.met.no/SIE). This automatically updates the cryo webpage.
+
+*This visualization service was developed with support from Arctic Passion (European Union's Horizon 2020 research and innovation programme grant agreement No. 101003472) and the EUMETSAT Ocean and Sea Ice Satellite Application Facility (OSI SAF).*

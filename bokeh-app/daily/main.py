@@ -104,8 +104,11 @@ pn.state.location.sync(zoom_shortcuts, {"clicked": "zoom"})
 color_groups = {
     "Sequential colour maps": {
         "Viridis": "viridis",
+        "Viridis (reversed)": "viridis_r",
         "Plasma": "plasma",
+        "Plasma (reversed)": "plasma_r",
         "Batlow": "batlow",
+        "Batlow (reversed)": "batlow_r",
         "Custom decadal": "decadal",
     },
     "Non-sequential colour maps": {

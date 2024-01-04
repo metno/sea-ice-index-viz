@@ -83,8 +83,11 @@ pn.state.location.sync(reference_period_selector, {"value": "ref_period"})
 color_groups = {
     "Sequential colour maps": {
         "Viridis": "viridis",
+        "Viridis (reversed)": "viridis_r",
         "Plasma": "plasma",
+        "Plasma (reversed)": "plasma_r",
         "Batlow": "batlow",
+        "Batlow (reversed)": "batlow_r",
     },
     "Non-sequential colour maps": {
         "BatlowS": "batlowS",

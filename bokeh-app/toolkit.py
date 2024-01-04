@@ -396,8 +396,11 @@ def find_line_colors(years, color):
 
     else:
         translation_dictionary = {"viridis": matplotlib.cm.viridis,
+                                  "viridis_r": matplotlib.cm.viridis_r,
                                   "plasma": matplotlib.cm.plasma,
+                                  "plasma_r": matplotlib.cm.plasma_r,
                                   "batlow": cm.batlow,
+                                  "batlow_r": cm.batlow_r,
                                   "batlowS": cm.batlowS}
 
         normalised = np.linspace(0, 1, len(years))

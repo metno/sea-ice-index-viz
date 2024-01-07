@@ -56,8 +56,10 @@ area_groups = {
     },
     "Southern Hemisphere Regions": {
         "Amundsen-Bellingshausen Sea": "bell",
+        "Dronning Maud Land": "drml",
         "Indian Ocean": "indi",
         "Ross Sea": "ross",
+        "Troll Station": "trol",
         "Weddell Sea": "wedd",
         "Western Pacific Ocean": "wpac",
     }

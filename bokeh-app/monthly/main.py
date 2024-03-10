@@ -1,6 +1,6 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, Paragraph, Legend, Label
+from bokeh.models import HoverTool, Paragraph, Legend, Label, CustomJSHover
 import logging
 import param
 import calendar
@@ -209,6 +209,16 @@ try:
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
     # Add a hovertool to display the date, index value, and rank of the individual years.
+
+    # Function for custom formatting of rank values. If decimal is zero don't show it, otherwise show only one decimal.
+    rank_custom = CustomJSHover(code="""
+        if (Number.isInteger(value)) {
+          return value.toFixed();
+        } else {
+          return value.toFixed(1);
+        }
+        """)
+
     TOOLTIPS = """
         <div>
             <div>
@@ -222,12 +232,15 @@ try:
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank (@month):</span>
-                <span style="font-size: 12px;">@rank</span>
+                <span style="font-size: 12px;">@rank{custom}</span>
             </div>
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=circle_glyphs, tooltips=TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=circle_glyphs,
+                             tooltips=TOOLTIPS,
+                             formatters={'@rank': rank_custom},
+                             toggleable=False))
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
     TOOLTIPS = """

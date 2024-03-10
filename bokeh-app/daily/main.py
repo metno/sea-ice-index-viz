@@ -1,6 +1,6 @@
 import panel as pn
 from bokeh.plotting import figure
-from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label
+from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label, CustomJSHover
 import logging
 import param
 import os
@@ -348,6 +348,16 @@ try:
     plot.legend.click_policy = "hide"
 
     # Add a hovertool to display the date, index value, and rank of the individual years.
+
+    # Function for custom formatting of rank values. If decimal is zero don't show it, otherwise show only one decimal.
+    rank_custom = CustomJSHover(code="""
+    if (Number.isInteger(value)) {
+      return value.toFixed();
+    } else {
+      return value.toFixed(1);
+    }
+    """)
+
     TOOLTIPS = """
     <div>
         <div>
@@ -361,12 +371,15 @@ try:
         </div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Rank:</span>
-            <span style="font-size: 12px;">@rank</span>
+            <span style="font-size: 12px;">@rank{custom}</span>
         </div>
     </div>
     """
 
-    plot.add_tools(HoverTool(renderers=individual_years_glyphs, tooltips=TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=individual_years_glyphs,
+                             tooltips=TOOLTIPS,
+                             formatters={'@rank': rank_custom},
+                             toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
     MAX_TOOLTIPS = """
@@ -385,12 +398,15 @@ try:
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank</span>
+                <span style="font-size: 12px;">@rank{custom}</span>
             </div>
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_max_glyph], tooltips=MAX_TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=[yearly_max_glyph],
+                             tooltips=MAX_TOOLTIPS,
+                             formatters={'@rank': rank_custom},
+                             toggleable=False))
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
     MIN_TOOLTIPS = """
@@ -409,12 +425,15 @@ try:
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank</span>
+                <span style="font-size: 12px;">@rank{custom}</span>
             </div>
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=[yearly_min_glyph], tooltips=MIN_TOOLTIPS, toggleable=False))
+    plot.add_tools(HoverTool(renderers=[yearly_min_glyph],
+                             tooltips=MIN_TOOLTIPS,
+                             formatters={'@rank': rank_custom},
+                             toggleable=False))
 
     # Hardcode the x-ticks (day_of_year, date).
     plot.x_range = Range1d(start=1, end=366)

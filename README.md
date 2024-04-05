@@ -4,50 +4,35 @@ Visualization tools for the Sea Ice Indexes
 
 **Sea Ice Extent:  Time series of Sea Ice Extent - NetCDF resource available as OpenDAP URL**
 
-### Demo
-
-   https://mybinder.org/v2/gh/metno/sea-ice-index-viz/main?urlpath=/proxy/5006/bokeh-app
-
-
 ### Local deployment
 
 To build and run locally:
 
-* Install Docker
+* Install Docker Engine: https://docs.docker.com/engine/install/
 
-    For installing Docker CE, follow the [official instructions](https://docs.docker.com/engine/install/).
-    
-        e.g.: Docker-CE on Ubuntu can be setup using Docker’s official convenience script:
-
-        ```
-        curl https://get.docker.com | sh \
-        && sudo systemctl --now enable docker
-        ```
-
-
-* Install `docker-compose`
-
-    ```
-    apt install python3-pip && pip3 install docker-compose
-    ``` 
+* Install Compose plugin: https://docs.docker.com/compose/install/
 
 * Clone this repository and build the docker container
-    
+
     ```
     git clone https://github.com/metno/sea-ice-index-viz && \
     cd sea-ice-index-viz && \
-    docker-compose build
+    docker compose build
     ```
 
-* Run the docker-compose environment
-    
+* Run the Docker Compose environment
+
     ```
-    docker-compose up
+    docker compose up
     ```
 
-The bokeh-server application will be availavble at:
+The bokeh-server application will be available at all of the following addresses:
 
-```http://0.0.0.0:7000/SIE```
+```http://0.0.0.0:50000```
+
+```http://localhost:50000```
+
+```http://127.0.0.1:50000```
 
 ### Deployment to MET's Bokeh server
 

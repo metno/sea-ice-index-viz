@@ -1,0 +1,16 @@
+name: visualisation_app
+
+services:
+  panel:
+    build: .
+    environment:
+      BOKEH_ALLOW_WS_ORIGIN: '0.0.0.0:50000,localhost:50000,127.0.0.1:50000'
+      PORT: '49999'
+      LOG_LEVEL: 'debug'
+      BOKEH_LOG_LEVEL: 'debug'
+      PYTHONUNBUFFERED: 1
+    ports:
+      - '50000:49999'
+    volumes:
+      - ./bokeh-app:/bokeh-app
+

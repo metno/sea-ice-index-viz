@@ -4,11 +4,8 @@ from bokeh.models import HoverTool, Paragraph, Legend, Label, CustomJSHover
 import logging
 import param
 import calendar
-import os
-import sys
 from datetime import datetime
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import toolkit as tk  # noqa: E402
+import toolkit as tk
 
 
 # Specify a loading spinner wheel to display when data is being loaded.

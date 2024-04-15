@@ -3,10 +3,7 @@ from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label, CustomJSHover
 import logging
 import param
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import toolkit as tk  # noqa: E402
+import toolkit as tk
 
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969')
@@ -651,9 +648,11 @@ try:
 
 
     def on_load():
-        # Divide the layout into 5 columns. The plot uses 4 columns while the widgets get the last column.
-        gspec[0, 0:4] = pn.pane.Bokeh(plot)
-        gspec[0, 4] = inputs
+        # Divide the layout into 5 rows and 5 columns. The plot uses 5 rows and 4 columns,
+        # the widgets get the last column and first 3 rows, and the logo gets the last 2 rows.
+        gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
+        gspec[0:3, 4] = inputs
+        gspec[3:5, 4] = pn.pane.PNG('/bokeh-app/assets/logo.png', sizing_mode='scale_both')
 
     # There is currently a bug in Bokeh 3.1.1 where it incorrectly calculates the amount of available space. To work
     # around this we load the gridspec elements after the page has finished loading.

@@ -310,11 +310,6 @@ def find_yearly_min_max(da_converted, fill_colors_dict):
     return cds_yearly_max, cds_yearly_min
 
 
-def find_nice_ylimit(da):
-    """Find an upper y-limit with 10 percent added to the maximum value of the data."""
-    return 1.10 * da.max().values
-
-
 def find_nice_yrange(monthly_data, trend_data, padding_mult, min_span):
     """Function to find a nice y-range that is not too narrow."""
     all_monthly_data = np.concatenate((monthly_data, trend_data))

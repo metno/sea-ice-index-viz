@@ -179,6 +179,8 @@ try:
     # Plot the figure and make sure that it uses all available space.
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save")
     plot.sizing_mode = "stretch_both"
+    # Add a thick horizontal line to make y=0 stand out.
+    plot.hspan(y=0, line_color='#e5e5e5', line_width=3)
 
     # Plot the reference period climatology (percentiles and median).
     percentile_1090_glyph = plot.varea(x="day_of_year",
@@ -432,7 +434,7 @@ try:
                              formatters={'@rank': rank_custom},
                              toggleable=False))
 
-    # Hardcode the x-ticks (day_of_year, date).
+    # Hardcode the x-ticks (day_of_year, date), and set x-label.
     plot.x_range = Range1d(start=1, end=366)
     x_ticks = {1: '1 Jan',
                32: '1 Feb',
@@ -452,10 +454,8 @@ try:
     plot.xaxis.major_label_overrides = x_ticks
     plot.xaxis.axis_label = "Date"
 
-    # Find an upper y-limit and set y-tick properties and y-label.
-    upper_y_lim = tk.find_nice_ylimit(da)
-    plot.y_range = Range1d(start=0, end=upper_y_lim)
-    plot.y_range.reset_end = upper_y_lim
+    # Initialise the y-range, and aet y-tick properties and y-label.
+    plot.y_range = Range1d()
     plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
     plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
@@ -635,6 +635,36 @@ try:
     percentile_1090_glyph.on_change("visible", update_label_text)
     min_line_glyph.on_change("visible", update_label_text)
 
+    # Calculate the height of the text label in pixels in the lower left corner. The number of lines is hardcoded to
+    # 5 in order to have a consistent value that does not depend on whether all of the lines are visible (this
+    # depends on which plot elements are selected).
+    number_of_lines = 5
+    label_height = float(info_label.text_font_size.rstrip('px')) * info_label.text_line_height * number_of_lines
+
+    y_range_start_fraction = None
+    runs = 0
+
+    def get_y_range_start_offset(attr, old, new):
+        """
+        Calculate the fraction of the height of the label text relative to the height of the plot canvas. If the
+        function is run for the first time, run zoom_shortcuts to find new start and end values for the y-range. This
+        part is a workaround that is necessary because the "inner_height" value of the figure is only available after
+        the plot has been rendered in the browser and has had time to communicate with the server instance.
+        """
+        global y_range_start_fraction
+        y_range_start_fraction = label_height / new
+
+        global runs
+        if runs == 0:
+            zoom_shortcuts.param.trigger("clicked")
+
+        runs += 1
+
+    # Watch for changes in inner_height value and update y_range_start_fraction accordingly. This also runs once
+    # after the plot has finished rendering and the browser has had time to communicate back to the server with the
+    # inner_height value.
+    plot.on_change('inner_height', get_y_range_start_offset)
+
     # Define the layout.
     inputs = pn.Column(index_selector,
                        area_selector,
@@ -754,8 +784,7 @@ try:
             if event.new == 'year':
                 plot.x_range.start = 1
                 plot.x_range.end = 366
-                plot.y_range.start = 0
-                plot.y_range.end = tk.find_nice_ylimit(da_converted)
+                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
 
             elif event.new == 'current':
                 # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan
@@ -764,25 +793,26 @@ try:
                 x_range_end = current_year_outline.data_source.data['day_of_year'][-1] + 30
                 plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
                 plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05)
+                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
 
             elif event.new == 'min_extent':
                 # Plot two months around the day of year with the lowest average minimum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
                 plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05)
+                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
 
             elif event.new == 'max_extent':
                 # Plot two months around the day of year with the highest average maximum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
                 plot.x_range.end = (doy_maximum + 30 if doy_maximum + 30 < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05)
+                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
 
 
-    def set_zoom_yrange(padding_frac):
-        # Set the y-range between the minimum and maximum values plus a little padding.
+    def set_zoom_yrange(padding_frac, y_range_start_fraction):
+        # Set the y-range between the minimum and maximum values plus a little padding. Also account for the height
+        # of the text label in the lower left corner by lowering the start value of the y-range accordingly.
 
         # Find the x-range.
         doy_start = plot.x_range.start
@@ -796,6 +826,8 @@ try:
         data_min_value = dayofyear_min_values.sel(dayofyear=slice(doy_start, doy_end)).min().values
         data_max_value = dayofyear_max_values.sel(dayofyear=slice(doy_start, doy_end)).max().values
 
+        text_label_height = y_range_start_fraction * (data_max_value - data_min_value)
+
         # Sometimes the minimum and maximum values are the same. Account for this to always have some padding.
         if data_max_value - data_min_value < 1E-3:
             padding = data_max_value * padding_frac
@@ -803,7 +835,7 @@ try:
             padding = (data_max_value - data_min_value) * padding_frac
 
         # Set the y-range.
-        plot.y_range.start = (data_min_value - padding if data_min_value - padding > 0 else 0)
+        plot.y_range.start = data_min_value - (text_label_height + padding)
         plot.y_range.end = data_max_value + padding
 
 
@@ -839,9 +871,8 @@ try:
 
     final_pane = gspec.servable()
 
-    # Make sure plot shortcut and zoom get set correctly if url parameters are provided.
+    # Make sure plot shortcut get set correctly if url parameter is provided.
     plot_shortcuts.param.trigger("clicked")
-    zoom_shortcuts.param.trigger("clicked")
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.

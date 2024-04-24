@@ -3,7 +3,11 @@ from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label, CustomJSHover
 import logging
 import param
+import os
 import toolkit as tk
+
+# Get the root directory of the app.
+app_root = os.getenv('APP_ROOT')
 
 # Specify a loading spinner wheel to display when data is being loaded.
 pn.extension(loading_spinner='dots', loading_color='#696969')
@@ -682,7 +686,7 @@ try:
         # the widgets get the last column and first 3 rows, and the logo gets the last 2 rows.
         gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
         gspec[0:3, 4] = inputs
-        gspec[3:5, 4] = pn.pane.PNG('/bokeh-app/assets/logo.png', sizing_mode='scale_both')
+        gspec[3:5, 4] = pn.pane.PNG(f'{app_root}/assets/logo.png', sizing_mode='scale_both')
 
     # There is currently a bug in Bokeh 3.1.1 where it incorrectly calculates the amount of available space. To work
     # around this we load the gridspec elements after the page has finished loading.

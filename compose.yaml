@@ -10,6 +10,7 @@ services:
       BOKEH_LOG_LEVEL: 'debug'
       PYTHONUNBUFFERED: 1
       PYTHONPATH: '$${PYTHONPATH}:/bokeh-app'
+      APP_ROOT: '/bokeh-app'
     ports:
       - '50000:49999'
     volumes:

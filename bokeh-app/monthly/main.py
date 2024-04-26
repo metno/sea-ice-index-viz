@@ -118,7 +118,7 @@ try:
     da = extracted_data["da"]
 
     # Trim the title to not contain a "Mean" substring, the version number, and to deduplicate "Sea" substrings.
-    trimmed_title = tk.trim_title(extracted_data["title"])
+    trimmed_title = tk.trim_title(extracted_data["title"], None)
 
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save, reset")
     plot.sizing_mode = "stretch_both"
@@ -374,7 +374,7 @@ try:
                         decadal_cds_unpacked.data.update(new_decadal_cds_unpacked.data)
 
                 # Update the plot title and x-axis label.
-                trimmed_title = tk.trim_title(extracted_data["title"])
+                trimmed_title = tk.trim_title(extracted_data["title"], None)
                 plot.title.text = trimmed_title
                 plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 

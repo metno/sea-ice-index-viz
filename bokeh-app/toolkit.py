@@ -406,7 +406,7 @@ def find_line_colors(years, color):
     return color_dict
 
 
-def trim_title(title):
+def trim_title(title, plot_type):
     new_title = title.replace("(v2p1)", "v2.1").replace("(v2p2)", "v2.2")
     new_title = new_title.replace("Mean ", "")
     new_title = new_title.replace(" from EUMETSAT OSI SAF", "")
@@ -414,5 +414,9 @@ def trim_title(title):
     if new_title.count("Sea ") > 1:
         # In case there is more than one Sea substring in the title remove one to deduplicate.
         new_title = new_title.replace("Sea ", "", 1)
+
+    if plot_type == 'anomaly':
+        new_title = new_title.replace('Ice Area', 'Ice Area Anomaly')
+        new_title = new_title.replace('Ice Extent', 'Ice Extent Anomaly')
 
     return new_title

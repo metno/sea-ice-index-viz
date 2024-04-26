@@ -1,6 +1,7 @@
 import panel as pn
 from bokeh.plotting import figure
 from bokeh.models import AdaptiveTicker, HoverTool, Range1d, Legend, Paragraph, Label, CustomJSHover
+from bokeh.core.properties import value
 import logging
 import param
 import os
@@ -29,7 +30,14 @@ class VersionUrlParameter(param.Parameterized):
     value = param.Parameter("v2p2")
 
 
-pn.state.location.sync(VersionUrlParameter, {"value": "version"})
+pn.state.location.sync(VersionUrlParameter, {'value': 'version'})
+
+# Add dropdown menu for plot type selection, and sync to url parameter.
+plot_type_selector = pn.widgets.Select(name='Plot type:',
+                                       options={'Absolute values': 'absolute', 'Anomalies': 'anomaly'},
+                                       value='absolute',
+                                       sizing_mode='stretch_width')
+pn.state.location.sync(plot_type_selector, {'value': 'type'})
 
 # Add dropdown menu for index selection, and sync to url parameter.
 index_selector = pn.widgets.Select(name="Index:",
@@ -142,6 +150,15 @@ try:
     start_year = reference_period[:4]
     end_year = reference_period[5:]
 
+    if plot_type_selector.value == 'anomaly':
+        mean = da_converted.sel(time=slice(start_year, end_year)).groupby('time.dayofyear').mean()
+        anomaly = da_converted.groupby('time.dayofyear') - mean
+        da_converted = anomaly
+
+        da_new_calendar = da.convert_calendar('all_leap')
+        da_anomaly = da_new_calendar.groupby('time.dayofyear') - mean
+        da = da_anomaly
+
     # Calculate the reference period climatology (percentiles and median)
     percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
                                                                                                   end_year)))
@@ -178,13 +195,13 @@ try:
     cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
 
     # Trim the title to not contain the version number, and to deduplicate "Sea" substrings.
-    trimmed_title = tk.trim_title(extracted_data["title"])
+    trimmed_title = tk.trim_title(extracted_data["title"], plot_type_selector.value)
 
     # Plot the figure and make sure that it uses all available space.
     plot = figure(title=trimmed_title, tools="pan, wheel_zoom, box_zoom, save")
     plot.sizing_mode = "stretch_both"
     # Add a thick horizontal line to make y=0 stand out.
-    plot.hspan(y=0, line_color='#e5e5e5', line_width=3)
+    plot.hspan(y=0, line_color='#d0d0d0', line_dash=value([10, 10]), line_width=3)
 
     # Plot the reference period climatology (percentiles and median).
     percentile_1090_glyph = plot.varea(x="day_of_year",
@@ -378,11 +395,14 @@ try:
         </div>
     </div>
     """
+    if plot_type_selector.value == 'anomaly':
+        TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
 
-    plot.add_tools(HoverTool(renderers=individual_years_glyphs,
-                             tooltips=TOOLTIPS,
-                             formatters={'@rank': rank_custom},
-                             toggleable=False))
+    individual_years_hovertool = HoverTool(renderers=individual_years_glyphs,
+                                           tooltips=TOOLTIPS,
+                                           formatters={'@rank': rank_custom},
+                                           toggleable=False)
+    plot.add_tools(individual_years_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
     MAX_TOOLTIPS = """
@@ -405,11 +425,14 @@ try:
             </div>
         </div>
         """
+    if plot_type_selector.value == 'anomaly':
+        MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
 
-    plot.add_tools(HoverTool(renderers=[yearly_max_glyph],
-                             tooltips=MAX_TOOLTIPS,
-                             formatters={'@rank': rank_custom},
-                             toggleable=False))
+    max_line_hovertool = HoverTool(renderers=[yearly_max_glyph],
+                                   tooltips=MAX_TOOLTIPS,
+                                   formatters={'@rank': rank_custom},
+                                   toggleable=False)
+    plot.add_tools(max_line_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
     MIN_TOOLTIPS = """
@@ -432,11 +455,14 @@ try:
             </div>
         </div>
         """
+    if plot_type_selector.value == 'anomaly':
+        MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
 
-    plot.add_tools(HoverTool(renderers=[yearly_min_glyph],
-                             tooltips=MIN_TOOLTIPS,
-                             formatters={'@rank': rank_custom},
-                             toggleable=False))
+    min_line_hovertool = HoverTool(renderers=[yearly_min_glyph],
+                                   tooltips=MIN_TOOLTIPS,
+                                   formatters={'@rank': rank_custom},
+                                   toggleable=False)
+    plot.add_tools(min_line_hovertool)
 
     # Hardcode the x-ticks (day_of_year, date), and set x-label.
     plot.x_range = Range1d(start=1, end=366)
@@ -461,7 +487,10 @@ try:
     # Initialise the y-range, and aet y-tick properties and y-label.
     plot.y_range = Range1d()
     plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
-    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+    if plot_type_selector.value == 'anomaly':
+        plot.yaxis.axis_label = f"{extracted_data['long_name']} Anomaly - {extracted_data['units']}"
+    else:
+        plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
     # Find the day of year with the minimum and maximum values. These are used in the zoom shortcuts.
     doy_minimum = da_converted.groupby("time.dayofyear").median().idxmin().values.astype(int)
@@ -485,6 +514,9 @@ try:
                  f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
                  "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                  f"Last data point: {last_date_string}"
+
+    if plot_type_selector.value == 'anomaly':
+        label_text = f'Anomalies calculated relative to mean of {reference_period_selector.value}\n' + label_text
 
     info_label = Label(x=5,
                        y=5,
@@ -618,16 +650,21 @@ try:
     # Create a callback to update the label text based on whether the climatology glyphs are visible, and also when
     # the reference period changes.
     def update_label_text(attr, old, new):
-        new_label = ""
+        if plot_type_selector.value == 'anomaly':
+            new_label = f'Anomalies calculated relative to mean of {reference_period_selector.value}\n'
+        else:
+            new_label = ''
+
         if percentile_1090_glyph.visible:
             new_label += f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}"
-        if min_line_glyph.visible:
-            if percentile_1090_glyph.visible:
-                new_label += f", min/max for {first_year}-{second_to_last_year}"
+            if min_line_glyph.visible:
+                new_label += f", min/max for {first_year}-{second_to_last_year}\n"
             else:
-                new_label += f"Min/max for {first_year}-{second_to_last_year}"
+                new_label += '\n'
+        else:
+            if min_line_glyph.visible:
+                new_label += f"Min/max for {first_year}-{second_to_last_year}\n"
 
-        new_label += "\n"
         new_label += f"Data: Derived from OSI SAF Sea Ice Concentration CDRs {cdr_version}\n" \
                      "Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n" \
                      f"Last data point: {last_date_string}"
@@ -642,7 +679,7 @@ try:
     # Calculate the height of the text label in pixels in the lower left corner. The number of lines is hardcoded to
     # 5 in order to have a consistent value that does not depend on whether all of the lines are visible (this
     # depends on which plot elements are selected).
-    number_of_lines = 5
+    number_of_lines = 6
     label_height = float(info_label.text_font_size.rstrip('px')) * info_label.text_line_height * number_of_lines
 
     y_range_start_fraction = None
@@ -670,7 +707,8 @@ try:
     plot.on_change('inner_height', get_y_range_start_offset)
 
     # Define the layout.
-    inputs = pn.Column(index_selector,
+    inputs = pn.Column(plot_type_selector,
+                       index_selector,
                        area_selector,
                        reference_period_selector,
                        plot_shortcuts,
@@ -693,15 +731,15 @@ try:
     pn.state.onload(on_load)
 
 
-    def update_reference_period(event):
+    def update_reference_period():
         with pn.param.set_values(final_pane, loading=True):
             # Function that is used to update the climatology when the reference period is changed.
-            reference_period = event.new
-
+            reference_period = reference_period_selector.value
             start_year = reference_period[:4]
             end_year = reference_period[5:]
+
             percentiles_and_median_dict = tk.calculate_percentiles_and_median(da_converted.sel(time=slice(start_year,
-                                                                                                      end_year)))
+                                                                                                          end_year)))
 
             cds_percentile_1090.data.update(percentiles_and_median_dict["cds_percentile_1090"].data)
             cds_percentile_2575.data.update(percentiles_and_median_dict["cds_percentile_2575"].data)
@@ -729,8 +767,21 @@ try:
                 # Convert calendar to all_leap and interpolate missing February 29th values.
                 da_converted = tk.convert_and_interpolate_calendar(da)
 
+                reference_period = reference_period_selector.value
+                start_year = reference_period[:4]
+                end_year = reference_period[5:]
+
+                if plot_type_selector.value == 'anomaly':
+                    mean = da_converted.sel(time=slice(start_year, end_year)).groupby('time.dayofyear').mean()
+                    anomaly = da_converted.groupby('time.dayofyear') - mean
+                    da_converted = anomaly
+
+                    da_new_calendar = da.convert_calendar('all_leap')
+                    da_anomaly = da_new_calendar.groupby('time.dayofyear') - mean
+                    da = da_anomaly
+
                 # Recalculate and update the climatology plots (percentiles and median).
-                reference_period_selector.param.trigger("value")
+                update_reference_period()
 
                 # Update min/max lines.
                 min_max_dict = tk.calculate_min_max(da_converted)
@@ -762,10 +813,31 @@ try:
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
+                # Update the index formatting in the hovertools.
+                global MIN_TOOLTIPS
+                global MAX_TOOLTIPS
+                global TOOLTIPS
+
+                if plot_type_selector.value == 'anomaly':
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
+                    TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
+                else:
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('+0.000', '0.000')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('+0.000', '0.000')
+                    TOOLTIPS = TOOLTIPS.replace('+0.000', '0.000')
+
+                min_line_hovertool.update(tooltips=MIN_TOOLTIPS)
+                max_line_hovertool.update(tooltips=MAX_TOOLTIPS)
+                individual_years_hovertool.update(tooltips=TOOLTIPS)
+
                 # Update the plot title and x-axis label.
-                trimmed_title = tk.trim_title(extracted_data["title"])
+                trimmed_title = tk.trim_title(extracted_data["title"], plot_type_selector.value)
                 plot.title.text = trimmed_title
-                plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
+                if plot_type_selector.value == 'anomaly':
+                    plot.yaxis.axis_label = f"{extracted_data['long_name']} Anomaly - {extracted_data['units']}"
+                else:
+                    plot.yaxis.axis_label = f"{extracted_data['long_name']} - {extracted_data['units']}"
 
                 # Find the day of year for the average minimum and maximum values. These are global variables because
                 # they are used in other callbacks.
@@ -788,7 +860,9 @@ try:
             if event.new == 'year':
                 plot.x_range.start = 1
                 plot.x_range.end = 366
-                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
+                set_zoom_yrange(padding_frac=0.05,
+                                y_range_start_fraction=y_range_start_fraction,
+                                plot_type=plot_type_selector.value)
 
             elif event.new == 'current':
                 # Plot two months around the latest datapoint. Make sure that the lower bound is not less 1st of Jan
@@ -797,24 +871,30 @@ try:
                 x_range_end = current_year_outline.data_source.data['day_of_year'][-1] + 30
                 plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
                 plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
+                set_zoom_yrange(padding_frac=0.05,
+                                y_range_start_fraction=y_range_start_fraction,
+                                plot_type=plot_type_selector.value)
 
             elif event.new == 'min_extent':
                 # Plot two months around the day of year with the lowest average minimum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_minimum - 30 if doy_minimum - 30 > 1 else 1)
                 plot.x_range.end = (doy_minimum + 30 if doy_minimum + 30 < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
+                set_zoom_yrange(padding_frac=0.05,
+                                y_range_start_fraction=y_range_start_fraction,
+                                plot_type=plot_type_selector.value)
 
             elif event.new == 'max_extent':
                 # Plot two months around the day of year with the highest average maximum value. Make sure that the
                 # lower bound is not less 1st of Jan and upper bound is not more than 31st of Dec.
                 plot.x_range.start = (doy_maximum - 30 if doy_maximum - 30 > 1 else 1)
                 plot.x_range.end = (doy_maximum + 30 if doy_maximum + 30 < 366 else 366)
-                set_zoom_yrange(padding_frac=0.05, y_range_start_fraction=y_range_start_fraction)
+                set_zoom_yrange(padding_frac=0.05,
+                                y_range_start_fraction=y_range_start_fraction,
+                                plot_type=plot_type_selector.value)
 
 
-    def set_zoom_yrange(padding_frac, y_range_start_fraction):
+    def set_zoom_yrange(padding_frac, y_range_start_fraction, plot_type):
         # Set the y-range between the minimum and maximum values plus a little padding. Also account for the height
         # of the text label in the lower left corner by lowering the start value of the y-range accordingly.
 
@@ -830,7 +910,12 @@ try:
         data_min_value = dayofyear_min_values.sel(dayofyear=slice(doy_start, doy_end)).min().values
         data_max_value = dayofyear_max_values.sel(dayofyear=slice(doy_start, doy_end)).max().values
 
-        text_label_height = y_range_start_fraction * (data_max_value - data_min_value)
+        if plot_type != 'anomaly':
+            text_label_height = y_range_start_fraction * (data_max_value - data_min_value)
+        else:
+            # We use the absolute max value since anomalies are centred on y=0.
+            data_max_value = max(abs(data_min_value), abs(data_max_value))
+            text_label_height = y_range_start_fraction * 2 * data_max_value
 
         # Sometimes the minimum and maximum values are the same. Account for this to always have some padding.
         if data_max_value - data_min_value < 1E-3:
@@ -839,8 +924,12 @@ try:
             padding = (data_max_value - data_min_value) * padding_frac
 
         # Set the y-range.
-        plot.y_range.start = data_min_value - (text_label_height + padding)
-        plot.y_range.end = data_max_value + padding
+        if plot_type != 'anomaly':
+            plot.y_range.start = data_min_value - (text_label_height + padding)
+            plot.y_range.end = data_max_value + padding
+        else:
+            plot.y_range.start = -(data_max_value + text_label_height + padding)
+            plot.y_range.end = data_max_value + padding
 
 
     def update_line_color(event):
@@ -867,9 +956,10 @@ try:
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
     # Run callbacks when widget values change.
+    plot_type_selector.param.watch(update_data, 'value')
     index_selector.param.watch(update_data, "value")
     area_selector.param.watch(update_data, "value")
-    reference_period_selector.param.watch(update_reference_period, "value")
+    reference_period_selector.param.watch(update_data, "value")
     zoom_shortcuts.param.watch(update_zoom, "clicked", onlychanged=False)
     color_scale_selector.param.watch(update_line_color, "value")
 

@@ -145,6 +145,7 @@ try:
 
     # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.
     da_converted = tk.convert_and_interpolate_calendar(da)
+    da_converted_original = da_converted
 
     reference_period = reference_period_selector.value
     start_year = reference_period[:4]
@@ -192,7 +193,7 @@ try:
     # Calculate the yearly min and max values.
     data_years = tk.get_list_of_years(da)
     colors_dict = tk.find_line_colors(data_years, color_scale_selector.value)
-    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
+    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted_original, da_converted, colors_dict)
 
     # Trim the title to not contain the version number, and to deduplicate "Sea" substrings.
     trimmed_title = tk.trim_title(extracted_data["title"], plot_type_selector.value)
@@ -766,6 +767,7 @@ try:
                 global da_converted
                 # Convert calendar to all_leap and interpolate missing February 29th values.
                 da_converted = tk.convert_and_interpolate_calendar(da)
+                da_converted_original = da_converted
 
                 reference_period = reference_period_selector.value
                 start_year = reference_period[:4]
@@ -809,7 +811,9 @@ try:
                     old_cds.data.update(new_cds.data)
 
                 # Update the yearly min/max values.
-                new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
+                new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted_original,
+                                                                                da_converted,
+                                                                                colors_dict)
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 

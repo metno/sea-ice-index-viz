@@ -263,7 +263,7 @@ class Trends:
         return monthly_trends
 
 
-def find_yearly_min_max(da_converted, fill_colors_dict):
+def find_yearly_min_max(da_converted, da_converted_anomaly, fill_colors_dict):
     # Find the years we have data for, except the current one. Select the data from those years and group it by year.
     years = get_list_of_years(da_converted)[:-1].tolist()
 
@@ -278,11 +278,12 @@ def find_yearly_min_max(da_converted, fill_colors_dict):
     # Find the yearly max/min date, day of year, and index value.
     yearly_max_date = da_sliced_and_grouped.apply(lambda x: x.idxmax(dim="time"))
     yearly_max_doy = da_converted.sel(time=yearly_max_date).time.dt.dayofyear
-    yearly_max_index_value = da_converted.sel(time=yearly_max_date)
 
     yearly_min_date = da_sliced_and_grouped.apply(lambda x: x.idxmin(dim="time"))
     yearly_min_doy = da_converted.sel(time=yearly_min_date).time.dt.dayofyear
-    yearly_min_index_value = da_converted.sel(time=yearly_min_date)
+
+    yearly_max_index_value = da_converted_anomaly.sel(time=yearly_max_date)
+    yearly_min_index_value = da_converted_anomaly.sel(time=yearly_min_date)
 
     # Use the same colours as the lines of the individual years.
     colors = [fill_colors_dict[year] for year in years]

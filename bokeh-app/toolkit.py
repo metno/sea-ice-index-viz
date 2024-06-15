@@ -8,7 +8,7 @@ import calendar
 
 
 def download_and_extract_data(index, area, frequency, version):
-    url_prefix = "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/"
+    url_prefix = "https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index"
 
     url = f"{url_prefix}/{version}/{area}/osisaf_{area}_{index}_{frequency}.nc"
 

@@ -309,14 +309,14 @@ try:
         individual_years_glyphs_legend_list.append((year, [line_glyph]))
 
     # Plot the yearly max and min values as triangles and circles, respectively.
-    yearly_max_glyph = plot.circle(x="day_of_year",
+    yearly_max_glyph = plot.scatter(x="day_of_year",
                                    y="index_value",
                                    color="color",
                                    size=6,
                                    source=cds_yearly_max,
                                    visible=False)
 
-    yearly_min_glyph = plot.circle(x="day_of_year",
+    yearly_min_glyph = plot.scatter(x="day_of_year",
                                    y="index_value",
                                    color="color",
                                    size=6,
@@ -402,7 +402,7 @@ try:
     individual_years_hovertool = HoverTool(renderers=individual_years_glyphs,
                                            tooltips=TOOLTIPS,
                                            formatters={'@rank': rank_custom},
-                                           toggleable=False)
+                                           visible=False)
     plot.add_tools(individual_years_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
@@ -432,7 +432,7 @@ try:
     max_line_hovertool = HoverTool(renderers=[yearly_max_glyph],
                                    tooltips=MAX_TOOLTIPS,
                                    formatters={'@rank': rank_custom},
-                                   toggleable=False)
+                                   visible=False)
     plot.add_tools(max_line_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
@@ -462,7 +462,7 @@ try:
     min_line_hovertool = HoverTool(renderers=[yearly_min_glyph],
                                    tooltips=MIN_TOOLTIPS,
                                    formatters={'@rank': rank_custom},
-                                   toggleable=False)
+                                   visible=False)
     plot.add_tools(min_line_hovertool)
 
     # Hardcode the x-ticks (day_of_year, date), and set x-label.
@@ -763,8 +763,10 @@ try:
                 extracted_data = tk.download_and_extract_data(index, area, "daily", version)
                 da = extracted_data["da"]
 
-                # Make sure da_converted is global because it's used by other callback functions.
+                # Make sure da_converted and da_converted_original are global because they're used by other callback
+                # functions.
                 global da_converted
+                global da_converted_original
                 # Convert calendar to all_leap and interpolate missing February 29th values.
                 da_converted = tk.convert_and_interpolate_calendar(da)
                 da_converted_original = da_converted
@@ -955,7 +957,9 @@ try:
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
                 individual_year_glyph.glyph.line_color = colors_dict[year]
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted_original,
+                                                                            da_converted,
+                                                                            colors_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
@@ -974,6 +978,6 @@ try:
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.
-    text = Paragraph(text="Sea ice data unavailable. Please try again in a few minutes.", style={"font-size": "30px"})
+    text = Paragraph(text="Sea ice data unavailable. Please try again in a few minutes.", styles={"font-size": "30px"})
 
     bokeh_pane = pn.pane.Bokeh(text).servable()

@@ -763,8 +763,10 @@ try:
                 extracted_data = tk.download_and_extract_data(index, area, "daily", version)
                 da = extracted_data["da"]
 
-                # Make sure da_converted is global because it's used by other callback functions.
+                # Make sure da_converted and da_converted_original are global because they're used by other callback
+                # functions.
                 global da_converted
+                global da_converted_original
                 # Convert calendar to all_leap and interpolate missing February 29th values.
                 da_converted = tk.convert_and_interpolate_calendar(da)
                 da_converted_original = da_converted
@@ -955,7 +957,9 @@ try:
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
                 individual_year_glyph.glyph.line_color = colors_dict[year]
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted_original,
+                                                                            da_converted,
+                                                                            colors_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 

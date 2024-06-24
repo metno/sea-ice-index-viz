@@ -379,25 +379,30 @@ try:
     }
     """)
 
-    TOOLTIPS = """
+    if plot_type_selector.value == 'anomaly':
+        value_name = 'Anomaly:'
+        value_format = '+0.000'
+    else:
+        value_name = 'Index:'
+        value_format = '0.000'
+
+    TOOLTIPS = f"""
     <div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Date:</span>
             <span style="font-size: 12px;">@date</span>
         </div>
         <div>
-            <span style="font-size: 12px; font-weight: bold">Index:</span>
-            <span style="font-size: 12px;">@index_values{0.000}</span>
+            <span style="font-size: 12px; font-weight: bold">{value_name}</span>
+            <span style="font-size: 12px;">@index_values{{{value_format}}}</span>
             <span style="font-size: 12px;">mill. km<sup>2</sup></span>
         </div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Rank:</span>
-            <span style="font-size: 12px;">@rank{custom}</span>
+            <span style="font-size: 12px;">@rank{{custom}}</span>
         </div>
     </div>
     """
-    if plot_type_selector.value == 'anomaly':
-        TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
 
     individual_years_hovertool = HoverTool(renderers=individual_years_glyphs,
                                            tooltips=TOOLTIPS,
@@ -406,7 +411,7 @@ try:
     plot.add_tools(individual_years_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
-    MAX_TOOLTIPS = """
+    MAX_TOOLTIPS = f"""
         <div>
             <div>
                 <span style="font-size: 14px; font-weight: bold;">Yearly maximum</span>
@@ -416,18 +421,16 @@ try:
                 <span style="font-size: 12px;">@date</span>
             </div>
             <div>
-                <span style="font-size: 12px; font-weight: bold">Index:</span>
-                <span style="font-size: 12px;">@index_value{0.000}</span>
+                <span style="font-size: 12px; font-weight: bold">{value_name}</span>
+                <span style="font-size: 12px;">@index_value{{{value_format}}}</span>
                 <span style="font-size: 12px;">mill. km<sup>2</sup></span>
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank{custom}</span>
+                <span style="font-size: 12px;">@rank{{custom}}</span>
             </div>
         </div>
         """
-    if plot_type_selector.value == 'anomaly':
-        MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
 
     max_line_hovertool = HoverTool(renderers=[yearly_max_glyph],
                                    tooltips=MAX_TOOLTIPS,
@@ -436,7 +439,7 @@ try:
     plot.add_tools(max_line_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
-    MIN_TOOLTIPS = """
+    MIN_TOOLTIPS = f"""
         <div>
             <div>
                 <span style="font-size: 14px; font-weight: bold;">Yearly minimum</span>
@@ -446,18 +449,16 @@ try:
                 <span style="font-size: 12px;">@date</span>
             </div>
             <div>
-                <span style="font-size: 12px; font-weight: bold">Index:</span>
-                <span style="font-size: 12px;">@index_value{0.000}</span>
+                <span style="font-size: 12px; font-weight: bold">{value_name}</span>
+                <span style="font-size: 12px;">@index_value{{{value_format}}}</span>
                 <span style="font-size: 12px;">mill. km<sup>2</sup></span>
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank{custom}</span>
+                <span style="font-size: 12px;">@rank{{custom}}</span>
             </div>
         </div>
         """
-    if plot_type_selector.value == 'anomaly':
-        MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
 
     min_line_hovertool = HoverTool(renderers=[yearly_min_glyph],
                                    tooltips=MIN_TOOLTIPS,
@@ -485,7 +486,7 @@ try:
     plot.xaxis.major_label_overrides = x_ticks
     plot.xaxis.axis_label = "Date"
 
-    # Initialise the y-range, and aet y-tick properties and y-label.
+    # Initialise the y-range, and set y-tick properties and y-label.
     plot.y_range = Range1d()
     plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
     if plot_type_selector.value == 'anomaly':
@@ -819,19 +820,19 @@ try:
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-                # Update the index formatting in the hovertools.
+                # Update the value name and index formatting in hovertools.
                 global MIN_TOOLTIPS
                 global MAX_TOOLTIPS
                 global TOOLTIPS
 
                 if plot_type_selector.value == 'anomaly':
-                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
-                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
-                    TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
+                    TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
                 else:
-                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('+0.000', '0.000')
-                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('+0.000', '0.000')
-                    TOOLTIPS = TOOLTIPS.replace('+0.000', '0.000')
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
+                    TOOLTIPS = TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
 
                 min_line_hovertool.update(tooltips=MIN_TOOLTIPS)
                 max_line_hovertool.update(tooltips=MAX_TOOLTIPS)

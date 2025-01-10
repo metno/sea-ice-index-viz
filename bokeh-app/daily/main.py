@@ -136,16 +136,22 @@ color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:",
 pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
-try:
-    extracted_data = tk.download_and_extract_data(index_selector.value,
-                                                  area_selector.value,
+
+@pn.cache(max_items=4)
+def get_data(index_selector, area_selector, VersionUrlParameter):
+    extracted_data = tk.download_and_extract_data(index_selector,
+                                                  area_selector,
                                                   "daily",
-                                                  VersionUrlParameter.value)
+                                                  VersionUrlParameter)
+    return extracted_data
+
+try:
+    extracted_data = get_data(index_selector.value, area_selector.value, VersionUrlParameter.value)
+
     da = extracted_data["da"]
 
     # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.
     da_converted = tk.convert_and_interpolate_calendar(da)
-    da_converted_original = da_converted
 
     reference_period = reference_period_selector.value
     start_year = reference_period[:4]
@@ -193,7 +199,7 @@ try:
     # Calculate the yearly min and max values.
     data_years = tk.get_list_of_years(da)
     colors_dict = tk.find_line_colors(data_years, color_scale_selector.value)
-    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted_original, da_converted, colors_dict)
+    cds_yearly_max, cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
 
     # Trim the title to not contain the version number, and to deduplicate "Sea" substrings.
     trimmed_title = tk.trim_title(extracted_data["title"], plot_type_selector.value)
@@ -309,14 +315,14 @@ try:
         individual_years_glyphs_legend_list.append((year, [line_glyph]))
 
     # Plot the yearly max and min values as triangles and circles, respectively.
-    yearly_max_glyph = plot.scatter(x="day_of_year",
+    yearly_max_glyph = plot.circle(x="day_of_year",
                                    y="index_value",
                                    color="color",
                                    size=6,
                                    source=cds_yearly_max,
                                    visible=False)
 
-    yearly_min_glyph = plot.scatter(x="day_of_year",
+    yearly_min_glyph = plot.circle(x="day_of_year",
                                    y="index_value",
                                    color="color",
                                    size=6,
@@ -379,39 +385,34 @@ try:
     }
     """)
 
-    if plot_type_selector.value == 'anomaly':
-        value_name = 'Anomaly:'
-        value_format = '+0.000'
-    else:
-        value_name = 'Index:'
-        value_format = '0.000'
-
-    TOOLTIPS = f"""
+    TOOLTIPS = """
     <div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Date:</span>
             <span style="font-size: 12px;">@date</span>
         </div>
         <div>
-            <span style="font-size: 12px; font-weight: bold">{value_name}</span>
-            <span style="font-size: 12px;">@index_values{{{value_format}}}</span>
+            <span style="font-size: 12px; font-weight: bold">Index:</span>
+            <span style="font-size: 12px;">@index_values{0.000}</span>
             <span style="font-size: 12px;">mill. km<sup>2</sup></span>
         </div>
         <div>
             <span style="font-size: 12px; font-weight: bold">Rank:</span>
-            <span style="font-size: 12px;">@rank{{custom}}</span>
+            <span style="font-size: 12px;">@rank{custom}</span>
         </div>
     </div>
     """
+    if plot_type_selector.value == 'anomaly':
+        TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
 
     individual_years_hovertool = HoverTool(renderers=individual_years_glyphs,
                                            tooltips=TOOLTIPS,
                                            formatters={'@rank': rank_custom},
-                                           visible=False)
+                                           toggleable=False)
     plot.add_tools(individual_years_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly max values.
-    MAX_TOOLTIPS = f"""
+    MAX_TOOLTIPS = """
         <div>
             <div>
                 <span style="font-size: 14px; font-weight: bold;">Yearly maximum</span>
@@ -421,25 +422,27 @@ try:
                 <span style="font-size: 12px;">@date</span>
             </div>
             <div>
-                <span style="font-size: 12px; font-weight: bold">{value_name}</span>
-                <span style="font-size: 12px;">@index_value{{{value_format}}}</span>
+                <span style="font-size: 12px; font-weight: bold">Index:</span>
+                <span style="font-size: 12px;">@index_value{0.000}</span>
                 <span style="font-size: 12px;">mill. km<sup>2</sup></span>
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank{{custom}}</span>
+                <span style="font-size: 12px;">@rank{custom}</span>
             </div>
         </div>
         """
+    if plot_type_selector.value == 'anomaly':
+        MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
 
     max_line_hovertool = HoverTool(renderers=[yearly_max_glyph],
                                    tooltips=MAX_TOOLTIPS,
                                    formatters={'@rank': rank_custom},
-                                   visible=False)
+                                   toggleable=False)
     plot.add_tools(max_line_hovertool)
 
     # Add a hovertool to display the date, index value, and rank of the yearly min values.
-    MIN_TOOLTIPS = f"""
+    MIN_TOOLTIPS = """
         <div>
             <div>
                 <span style="font-size: 14px; font-weight: bold;">Yearly minimum</span>
@@ -449,21 +452,23 @@ try:
                 <span style="font-size: 12px;">@date</span>
             </div>
             <div>
-                <span style="font-size: 12px; font-weight: bold">{value_name}</span>
-                <span style="font-size: 12px;">@index_value{{{value_format}}}</span>
+                <span style="font-size: 12px; font-weight: bold">Index:</span>
+                <span style="font-size: 12px;">@index_value{0.000}</span>
                 <span style="font-size: 12px;">mill. km<sup>2</sup></span>
             </div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Rank:</span>
-                <span style="font-size: 12px;">@rank{{custom}}</span>
+                <span style="font-size: 12px;">@rank{custom}</span>
             </div>
         </div>
         """
+    if plot_type_selector.value == 'anomaly':
+        MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
 
     min_line_hovertool = HoverTool(renderers=[yearly_min_glyph],
                                    tooltips=MIN_TOOLTIPS,
                                    formatters={'@rank': rank_custom},
-                                   visible=False)
+                                   toggleable=False)
     plot.add_tools(min_line_hovertool)
 
     # Hardcode the x-ticks (day_of_year, date), and set x-label.
@@ -486,7 +491,7 @@ try:
     plot.xaxis.major_label_overrides = x_ticks
     plot.xaxis.axis_label = "Date"
 
-    # Initialise the y-range, and set y-tick properties and y-label.
+    # Initialise the y-range, and aet y-tick properties and y-label.
     plot.y_range = Range1d()
     plot.yaxis.ticker = AdaptiveTicker(base=10, mantissas=[1, 2], num_minor_ticks=4, desired_num_ticks=10)
     if plot_type_selector.value == 'anomaly':
@@ -764,13 +769,10 @@ try:
                 extracted_data = tk.download_and_extract_data(index, area, "daily", version)
                 da = extracted_data["da"]
 
-                # Make sure da_converted and da_converted_original are global because they're used by other callback
-                # functions.
+                # Make sure da_converted is global because it's used by other callback functions.
                 global da_converted
-                global da_converted_original
                 # Convert calendar to all_leap and interpolate missing February 29th values.
                 da_converted = tk.convert_and_interpolate_calendar(da)
-                da_converted_original = da_converted
 
                 reference_period = reference_period_selector.value
                 start_year = reference_period[:4]
@@ -814,25 +816,23 @@ try:
                     old_cds.data.update(new_cds.data)
 
                 # Update the yearly min/max values.
-                new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted_original,
-                                                                                da_converted,
-                                                                                colors_dict)
+                new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
                 cds_yearly_max.data.update(new_cds_yearly_max.data)
                 cds_yearly_min.data.update(new_cds_yearly_min.data)
 
-                # Update the value name and index formatting in hovertools.
+                # Update the index formatting in the hovertools.
                 global MIN_TOOLTIPS
                 global MAX_TOOLTIPS
                 global TOOLTIPS
 
                 if plot_type_selector.value == 'anomaly':
-                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
-                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
-                    TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000').replace('Index:', 'Anomaly:')
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('0.000', '+0.000')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('0.000', '+0.000')
+                    TOOLTIPS = TOOLTIPS.replace('0.000', '+0.000')
                 else:
-                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
-                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
-                    TOOLTIPS = TOOLTIPS.replace('+0.000', '0.000').replace('Anomaly:', 'Index:')
+                    MIN_TOOLTIPS = MIN_TOOLTIPS.replace('+0.000', '0.000')
+                    MAX_TOOLTIPS = MAX_TOOLTIPS.replace('+0.000', '0.000')
+                    TOOLTIPS = TOOLTIPS.replace('+0.000', '0.000')
 
                 min_line_hovertool.update(tooltips=MIN_TOOLTIPS)
                 max_line_hovertool.update(tooltips=MAX_TOOLTIPS)
@@ -958,9 +958,7 @@ try:
             for year, individual_year_glyph in zip(data_years[:-1], individual_years_glyphs[:-1]):
                 individual_year_glyph.glyph.line_color = colors_dict[year]
 
-            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted_original,
-                                                                            da_converted,
-                                                                            colors_dict)
+            new_cds_yearly_max, new_cds_yearly_min = tk.find_yearly_min_max(da_converted, colors_dict)
             cds_yearly_max.data.update(new_cds_yearly_max.data)
             cds_yearly_min.data.update(new_cds_yearly_min.data)
 
@@ -979,6 +977,6 @@ try:
 
 except OSError:
     # If the datafile is unavailable when the script starts display the message below instead of running the script.
-    text = Paragraph(text="Sea ice data unavailable. Please try again in a few minutes.", styles={"font-size": "30px"})
+    text = Paragraph(text="Sea ice data unavailable. Please try again in a few minutes.", style={"font-size": "30px"})
 
     bokeh_pane = pn.pane.Bokeh(text).servable()

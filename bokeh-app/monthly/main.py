@@ -110,11 +110,16 @@ trend_selector = pn.widgets.Select(name="Trend line:",
                                    sizing_mode="stretch_width")
 pn.state.location.sync(trend_selector, {"value": "trend"})
 
-try:
-    extracted_data = tk.download_and_extract_data(index_selector.value,
-                                                  area_selector.value,
+@pn.cache(max_items=4)
+def get_data(index_selector, area_selector, VersionUrlParameter):
+    extracted_data = tk.download_and_extract_data(index_selector,
+                                                  area_selector,
                                                   "monthly",
-                                                  VersionUrlParameter.value)
+                                                  VersionUrlParameter)
+    return extracted_data
+
+try:
+    extracted_data = get_data(index_selector.value, area_selector.value, VersionUrlParameter.value)
     da = extracted_data["da"]
 
     # Trim the title to not contain a "Mean" substring, the version number, and to deduplicate "Sea" substrings.
@@ -141,7 +146,7 @@ try:
     current_month = datetime.now().strftime("%B")
 
     line_glyphs = []
-    scatter_glyphs = []
+    circle_glyphs = []
     trend_line_glyphs = []
     decade_trend_line_glyphs = []
     for month, cds_month in cds_monthly_dict.items():
@@ -153,14 +158,14 @@ try:
 
         line_glyphs.append(line_glyph)
 
-        scatter_glyph = plot.scatter(x="x",
+        circle_glyph = plot.circle(x="x",
                                    y="index_values",
                                    source=cds_month,
                                    size=10,
                                    line_width=2,
                                    color=colors_dict[month])
 
-        scatter_glyphs.append(scatter_glyph)
+        circle_glyphs.append(circle_glyph)
 
         trend_line_glyph = plot.line(x="year",
                                      y="trend_line_values",
@@ -182,19 +187,19 @@ try:
         decade_trend_line_glyphs.append(decade_trend_glyphs_one_month)
 
         if trend_selector.value == "full":
-            legend_collection.append((month, [line_glyph, scatter_glyph, trend_line_glyph]))
+            legend_collection.append((month, [line_glyph, circle_glyph, trend_line_glyph]))
             if month == current_month:
                 for one_decade_glyph in decade_trend_glyphs_one_month:
                     one_decade_glyph.visible = False
         elif trend_selector.value == "decadal":
-            legend_collection.append((month, [line_glyph, scatter_glyph] + decade_trend_glyphs_one_month))
+            legend_collection.append((month, [line_glyph, circle_glyph] + decade_trend_glyphs_one_month))
             if month == current_month:
                 trend_line_glyph.visible = False
 
         if month != current_month:
             # Hide all months except the current one.
             line_glyph.visible = False
-            scatter_glyph.visible = False
+            circle_glyph.visible = False
             trend_line_glyph.visible = False
             for one_decade_glyph in decade_trend_glyphs_one_month:
                 one_decade_glyph.visible = False
@@ -237,10 +242,10 @@ try:
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=scatter_glyphs,
+    plot.add_tools(HoverTool(renderers=circle_glyphs,
                              tooltips=TOOLTIPS,
                              formatters={'@rank': rank_custom},
-                             visible=False))
+                             toggleable=False))
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
     TOOLTIPS = """
@@ -265,7 +270,7 @@ try:
             </div>
             """
 
-    plot.add_tools(HoverTool(renderers=trend_line_glyphs, tooltips=TOOLTIPS, visible=False))
+    plot.add_tools(HoverTool(renderers=trend_line_glyphs, tooltips=TOOLTIPS, toggleable=False))
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
     TOOLTIPS = """
@@ -291,7 +296,7 @@ try:
                 """
 
     decade_trend_glyphs_flattened = sum(decade_trend_line_glyphs, [])
-    plot.add_tools(HoverTool(renderers=decade_trend_glyphs_flattened, tooltips=TOOLTIPS, visible=False))
+    plot.add_tools(HoverTool(renderers=decade_trend_glyphs_flattened, tooltips=TOOLTIPS, toggleable=False))
 
     if extracted_data["ds_version"] == "v2p1":
         version_label = "v2.1"
@@ -392,14 +397,14 @@ try:
     def update_color_map(event):
         with pn.param.set_values(gspec, loading=True):
             colors_dict = tk.find_line_colors(calendar.month_name[1:], color_scale_selector.value)
-            for line_glyph, scatter_glyph, trend_line_glyph, decade_trend_glyphs_one_month, color in zip(line_glyphs,
-                                                                                                        scatter_glyphs,
+            for line_glyph, circle_glyph, trend_line_glyph, decade_trend_glyphs_one_month, color in zip(line_glyphs,
+                                                                                                        circle_glyphs,
                                                                                                         trend_line_glyphs,
                                                                                                         decade_trend_line_glyphs,
                                                                                                         colors_dict.values()):
                 line_glyph.glyph.line_color = color
-                scatter_glyph.glyph.fill_color = color
-                scatter_glyph.glyph.line_color = color
+                circle_glyph.glyph.fill_color = color
+                circle_glyph.glyph.line_color = color
                 trend_line_glyph.glyph.line_color = color
                 for decade_trend_glyph in decade_trend_glyphs_one_month:
                     decade_trend_glyph.glyph.line_color = color
@@ -411,7 +416,7 @@ try:
 
             if trend_selector.value == "full":
                 for i, month in enumerate(calendar.month_name[1:]):
-                    legend_collection.append((month, [line_glyphs[i], scatter_glyphs[i], trend_line_glyphs[i]]))
+                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i], trend_line_glyphs[i]]))
 
                     if decade_trend_line_glyphs[i][0].visible:
                         for one_decade_trend_line_glyph in decade_trend_line_glyphs[i]:
@@ -422,7 +427,7 @@ try:
 
             elif trend_selector.value == "decadal":
                 for i, month in enumerate(calendar.month_name[1:]):
-                    legend_collection.append((month, [line_glyphs[i], scatter_glyphs[i]] + decade_trend_line_glyphs[i]))
+                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i]] + decade_trend_line_glyphs[i]))
 
                     if trend_line_glyphs[i].visible:
                         trend_line_glyphs[i].visible = False

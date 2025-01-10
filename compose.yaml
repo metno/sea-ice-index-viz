@@ -1,18 +1,18 @@
-name: visualisation_app
+name: sea_ice_index_viz
 
 services:
   panel:
     build: .
     environment:
-      BOKEH_ALLOW_WS_ORIGIN: '0.0.0.0:50000,localhost:50000,127.0.0.1:50000'
-      PORT: '49999'
+      BOKEH_ALLOW_WS_ORIGIN: '0.0.0.0:7000,localhost:7000,127.0.0.1:7000'
+      PORT: '7000'
       LOG_LEVEL: 'debug'
       BOKEH_LOG_LEVEL: 'debug'
       PYTHONUNBUFFERED: 1
       PYTHONPATH: '$${PYTHONPATH}:/bokeh-app'
       APP_ROOT: '/bokeh-app'
     ports:
-      - '50000:49999'
+      - '7000:7000'
     volumes:
       - ./bokeh-app:/bokeh-app
 

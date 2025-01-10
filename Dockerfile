@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12.2
+FROM python:3.13.1
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-EXPOSE 49999
+EXPOSE 7000
 
 COPY /bokeh-app /bokeh-app
 

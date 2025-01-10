@@ -110,11 +110,16 @@ trend_selector = pn.widgets.Select(name="Trend line:",
                                    sizing_mode="stretch_width")
 pn.state.location.sync(trend_selector, {"value": "trend"})
 
-try:
-    extracted_data = tk.download_and_extract_data(index_selector.value,
-                                                  area_selector.value,
+@pn.cache(max_items=4)
+def get_data(index_selector, area_selector, VersionUrlParameter):
+    extracted_data = tk.download_and_extract_data(index_selector,
+                                                  area_selector,
                                                   "monthly",
-                                                  VersionUrlParameter.value)
+                                                  VersionUrlParameter)
+    return extracted_data
+
+try:
+    extracted_data = get_data(index_selector.value, area_selector.value, VersionUrlParameter.value)
     da = extracted_data["da"]
 
     # Trim the title to not contain a "Mean" substring, the version number, and to deduplicate "Sea" substrings.

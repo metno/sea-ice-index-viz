@@ -136,11 +136,18 @@ color_scale_selector = pn.widgets.Select(name="Color scale of yearly data:",
 pn.state.location.sync(color_scale_selector, {"value": "colour"})
 
 # Sometimes the data files are not available on the thredds server, so use try/except to check this.
-try:
-    extracted_data = tk.download_and_extract_data(index_selector.value,
-                                                  area_selector.value,
+
+@pn.cache(max_items=4)
+def get_data(index_selector, area_selector, VersionUrlParameter):
+    extracted_data = tk.download_and_extract_data(index_selector,
+                                                  area_selector,
                                                   "daily",
-                                                  VersionUrlParameter.value)
+                                                  VersionUrlParameter)
+    return extracted_data
+
+try:
+    extracted_data = get_data(index_selector.value, area_selector.value, VersionUrlParameter.value)
+
     da = extracted_data["da"]
 
     # Convert the calendar to an all_leap calendar and interpolate the missing February 29th values.

@@ -28,11 +28,11 @@ To build and run locally:
 
 The bokeh-server application will be available at all of the following addresses:
 
-```http://0.0.0.0:50000```
+```http://0.0.0.0:7000```
 
-```http://localhost:50000```
+```http://localhost:7000```
 
-```http://127.0.0.1:50000```
+```http://127.0.0.1:7000```
 
 ### Deployment to MET's Bokeh server
 

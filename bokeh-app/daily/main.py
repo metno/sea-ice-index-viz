@@ -6,7 +6,7 @@ from bokeh.io import curdoc
 import panel as pn
 import os
 
-from toolbox import VisDataDaily
+from toolkit import VisDataDaily
 from plot_tools import daily_attrs, Tooltips, year_zoom, now_zoom, min_zoom, max_zoom
 
 # Get the root directory of the app.

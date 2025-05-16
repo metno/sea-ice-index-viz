@@ -80,10 +80,10 @@ class VisDataDaily:
 
     def _download_data(self, anomaly: str, index: str, area: str, ref_period: str)\
             -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
-        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0/{area}'
+        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = f'{dir}/{index_translation[index]}_{area}_sii-v3p0_daily.nc'
+        path = f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_sii-v3p0_daily.nc'
         ds_daily = xr.open_dataset(path, cache=False).load()
 
         # Change to get test files working: use hardcoded climatology paths.
@@ -93,13 +93,15 @@ class VisDataDaily:
         decades = ['1980-1989', '1990-1999', '2000-2009', '2010-2019']
 
         for clim in clim_periods:
-            ds = xr.open_dataset(f'{dir}/{index_translation[index]}_nh_sii-v3p0_daily-climatology-{clim}.nc',
-                                 cache=False).load()
+            ds = xr.open_dataset(
+                f'{dir}/clim/{area}/{index_translation[index]}_{area}_sii-v3p0_daily-climatology-{clim}.nc',
+                cache=False).load()
             ds_clims[ds.attrs['climatology_period']] = ds
 
         for dec in decades:
-            ds = xr.open_dataset(f'{dir}/{index_translation[index]}_nh_sii-v3p0_daily-climatology-{dec}.nc',
-                                 cache=False).load()
+            ds = xr.open_dataset(
+                f'{dir}/clim/{area}/{index_translation[index]}_{area}_sii-v3p0_daily-climatology-{dec}.nc',
+                cache=False).load()
             ds_decades[ds.attrs['climatology_period']] = ds
 
         ds_clim = ds_clims[ref_period]
@@ -269,10 +271,10 @@ class VisDataMonthly:
             self.cds_dec_trends[month] = self._dec_trend(self.da, month, ref_per, offset)
 
     def _download_data(self, index: str, area: str):
-        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0/{area}'
+        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0/sii_v3p0'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = f'{dir}/{index_translation[index]}_{area}_sii-v3p0_monthly.nc'
+        path = f'{dir}/{area}/{index_translation[index]}_{area}_sii-v3p0_monthly.nc'
         ds = xr.open_dataset(path, cache=False).load()
 
         return ds

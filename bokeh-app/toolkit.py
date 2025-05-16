@@ -7,9 +7,6 @@ import itertools
 import cmcrameri.cm as cmc
 from numpy.typing import NDArray
 
-type StringsInArrayLike = NDArray[str] | list[str]
-type ArrayLike = NDArray | list
-
 
 class VisDataDaily:
     def __init__(self, anomaly: str, index: str, area: str, ref_period: str, cmap: str) -> None:

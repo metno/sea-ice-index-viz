@@ -15,6 +15,12 @@ app_root = os.getenv('APP_ROOT')
 def visualisation():
     pn.extension(loading_spinner='dots', loading_color='#696969', notifications=True)
 
+    plot_type_selector = pn.widgets.Select(name='Plot type:',
+                                           options={'Absolute values': 'abs', 'Anomalies': 'anom'},
+                                           value='abs',
+                                           sizing_mode='stretch_width')
+    pn.state.location.sync(plot_type_selector, {'value': 'type'})
+
     index_selector = pn.widgets.Select(name='Index:',
                                        options={'Sea Ice Extent': 'sie', 'Sea Ice Area': 'sia'},
                                        value='sie',
@@ -99,10 +105,11 @@ def visualisation():
                                        sizing_mode='stretch_width')
     pn.state.location.sync(trend_selector, {'value': 'trend'})
 
-    data = VisDataMonthly(index_selector.value, area_selector.value, reference_period_selector.value, cmap_selector.value,
-                          False)
+    data = VisDataMonthly(plot_type_selector.value, index_selector.value, area_selector.value,
+                          reference_period_selector.value, cmap_selector.value, False)
 
-    title, ylabel, info_text = monthly_attrs(index_selector.value, area_selector.value, data.get_last_month())
+    title, ylabel, info_text = monthly_attrs(plot_type_selector.value, index_selector.value, area_selector.value,
+                                             data.get_last_month())
 
     plot = figure(title=title, tools='pan, wheel_zoom, box_zoom, save, reset')
     plot.sizing_mode = 'stretch_both'
@@ -185,7 +192,7 @@ def visualisation():
         }
         """)
 
-    TOOLTIPS = """
+    tooltips = """
         <div>
             <div>
                 <span style="font-size: 12px; font-weight: bold">Date:</span>
@@ -203,66 +210,76 @@ def visualisation():
         </div>
         """
 
-    plot.add_tools(HoverTool(renderers=circle_glyphs,
-                             tooltips=TOOLTIPS,
-                             formatters={'@rank': rank_custom},
-                             visible=False))
+    if plot_type_selector.value == 'abs':
+        circle_ht = HoverTool(renderers=circle_glyphs, tooltips=tooltips, formatters={'@rank': rank_custom},
+                              visible=False)
+    else:
+        tt = tooltips.replace('0.000', '+0.000')
+        circle_ht = HoverTool(renderers=circle_glyphs, tooltips=tt, formatters={'@rank': rank_custom}, visible=False)
+
+    plot.add_tools(circle_ht)
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
-    TOOLTIPS = """
+    tooltips_abs = """
+        <div>
             <div>
-                <div>
-                    <span style="font-size: 12px; font-weight: bold">Month:</span>
-                    <span style="font-size: 12px;">@month</span>
-                </div>
-                <div>
-                    <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
-                    <span style="font-size: 12px;">@abs_trend{+0.0}</span>
-                    <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
-                </div>
-                <div>
-                    <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
-                    <span style="font-size: 12px;">@rel_trend{+0.0}% decade<sup>-1</sup></span>
-                </div>
-                <div>
-                    <span style="font-size: 12px; font-weight: bold">Reference period:</span>
-                    <span style="font-size: 12px;">@ref_per</span>
-                </div>
+                <span style="font-size: 12px; font-weight: bold">Month:</span>
+                <span style="font-size: 12px;">@month</span>
             </div>
-            """
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
+                <span style="font-size: 12px;">@abs_trend{+0.0}</span>
+                <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
+                <span style="font-size: 12px;">@rel_trend{+0.0}% decade<sup>-1</sup></span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Reference period:</span>
+                <span style="font-size: 12px;">@ref_per</span>
+            </div>
+        </div>
+        """
 
-    plot.add_tools(HoverTool(renderers=trend_glyphs, tooltips=TOOLTIPS, visible=False))
+    tooltips_anom = """
+        <div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Month:</span>
+                <span style="font-size: 12px;">@month</span>
+            </div>
+            <div>
+                <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
+                <span style="font-size: 12px;">@abs_trend{+0.0}</span>
+                <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
+            </div>
+        </div>
+        """
+
+    if plot_type_selector.value == 'abs':
+        trend_ht = HoverTool(renderers=trend_glyphs, tooltips=tooltips_abs, visible=False)
+    else:
+        trend_ht = HoverTool(renderers=trend_glyphs, tooltips=tooltips_anom, visible=False)
+
+    plot.add_tools(trend_ht)
 
     # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
-    TOOLTIPS = """
-                <div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Month:</span>
-                        <span style="font-size: 12px;">@month (@decade)</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Absolute trend:</span>
-                        <span style="font-size: 12px;">@abs_trend{+0.0}</span>
-                        <span style="font-size: 12px;">thousand km<sup>2</sup> yr<sup>-1</sup></span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Relative trend:</span>
-                        <span style="font-size: 12px;">@rel_trend{+0.0}% decade<sup>-1</sup></span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Reference period:</span>
-                        <span style="font-size: 12px;">@ref_per</span>
-                    </div>
-                </div>
-                """
-
     dec_trend_glyphs_flat = sum(dec_trend_glyphs, [])
-    plot.add_tools(HoverTool(renderers=dec_trend_glyphs_flat, tooltips=TOOLTIPS, visible=False))
+
+    if plot_type_selector.value == 'abs':
+        tt = tooltips_abs.replace('@month', '@month (@decade)')
+        dec_trend_ht = HoverTool(renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False)
+    else:
+        tt = tooltips_anom.replace('@month', '@month (@decade)')
+        dec_trend_ht = HoverTool(renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False)
+
+    plot.add_tools(dec_trend_ht)
 
     # Use a grid layout.
     gspec = pn.GridSpec(sizing_mode='stretch_both')
 
-    inputs = pn.Column(index_selector,
+    inputs = pn.Column(plot_type_selector,
+                       index_selector,
                        area_selector,
                        reference_period_selector,
                        cmap_selector,
@@ -272,16 +289,28 @@ def visualisation():
         with pn.param.set_values(gspec, loading=True):
             try:
                 if all_months_glyph.visible:
-                    data.update_data(index_selector.value, area_selector.value, reference_period_selector.value, True)
+                    data.update_data(plot_type_selector.value, index_selector.value, area_selector.value,
+                                     reference_period_selector.value, True)
                 else:
-                    data.update_data(index_selector.value, area_selector.value, reference_period_selector.value, False)
+                    data.update_data(plot_type_selector.value, index_selector.value, area_selector.value,
+                                     reference_period_selector.value, False)
             except OSError:
                 pn.state.notifications.error(f'Unable to load data! Please try again later.', duration=5000)
             else:
-                title, ylabel, info_text = monthly_attrs(index_selector.value, area_selector.value, data.get_last_month())
+                title, ylabel, info_text = monthly_attrs(plot_type_selector.value, index_selector.value,
+                                                         area_selector.value, data.get_last_month())
                 plot.title.text = title
                 plot.yaxis.axis_label = ylabel
                 info_label.text = info_text
+
+                if plot_type_selector.value == 'abs':
+                    circle_ht.tooltips = tooltips
+                    trend_ht.tooltips = tooltips_abs
+                    dec_trend_ht.tooltips = tooltips_abs.replace('@month', '@month (@decade)')
+                else:
+                    circle_ht.tooltips = tooltips.replace('0.000', '+0.000')
+                    trend_ht.tooltips = tooltips_anom
+                    dec_trend_ht.tooltips = tooltips_anom.replace('@month', '@month (@decade)')
 
     def update_color_map(event):
         with pn.param.set_values(gspec, loading=True):
@@ -325,6 +354,7 @@ def visualisation():
         update_data(None)
 
     # Run callbacks when widget values change.
+    plot_type_selector.param.watch(update_data, 'value')
     index_selector.param.watch(update_data, 'value')
     area_selector.param.watch(update_data, 'value')
     reference_period_selector.param.watch(update_data, 'value')

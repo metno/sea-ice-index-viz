@@ -71,7 +71,7 @@ def visualisation():
                                       sizing_mode='stretch_width')
     pn.state.location.sync(area_selector, {'value': 'area'})
 
-    reference_period_selector = pn.widgets.Select(name='Reference period of percentiles and median:',
+    reference_period_selector = pn.widgets.Select(name='Reference period (of anomalies and relative trends):',
                                                   options=['1981-2010', '1991-2020'],
                                                   value='1981-2010',
                                                   sizing_mode='stretch_width')

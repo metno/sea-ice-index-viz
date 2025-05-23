@@ -255,9 +255,12 @@ class VisDataDaily:
 
 
 class VisDataMonthly:
-    def __init__(self, index: str, area: str, ref_per: str, cmap: str, offset: bool) -> None:
+    def __init__(self, anomaly: str, index: str, area: str, ref_per: str, cmap: str, offset: bool) -> None:
         self.ds = self._download_data(index, area)
         self.da = self.ds[index]
+
+        if anomaly == 'anom':
+            self.da = self._get_anomaly(self.da, ref_per)
 
         self.cds_all = self._all(self.da)
 
@@ -278,6 +281,17 @@ class VisDataMonthly:
         ds = xr.open_dataset(path, cache=False).load()
 
         return ds
+
+    def _get_anomaly(self, da: xr.DataArray, ref_per: str) -> xr.DataArray:
+        start = ref_per[:4]
+        end = ref_per[5:]
+        ref_subset = da.sel(time=slice(start, end))
+
+        for i in range(1, 13):
+            mean = ref_subset[ref_subset.time.dt.month.isin([i])].mean(dim='time')
+            da.values[da.time.dt.month.isin([i]).values] = da.values[da.time.dt.month.isin([i]).values] - mean.values
+
+        return da
 
     def _all(self, da):
         return ColumnDataSource({'year': da.time.dt.year.values + ((da.time.dt.month.values - 1) / 12),
@@ -368,9 +382,12 @@ class VisDataMonthly:
 
         return trends
 
-    def update_data(self, index: str, area: str, ref_per: str, offset: bool):
+    def update_data(self, anomaly: str, index: str, area: str, ref_per: str, offset: bool) -> None:
         self.ds = self._download_data(index, area)
         self.da = self.ds[index]
+
+        if anomaly == 'anom':
+            self.da = self._get_anomaly(self.da, ref_per)
 
         self.cds_all.data.update(self._all(self.da).data)
 
@@ -379,7 +396,8 @@ class VisDataMonthly:
             self.cds_full_trends[month].data.update(self._full_trend(self.ds, self.da, month, ref_per, offset).data)
 
             for decade in self.cds_dec_trends[month].keys():
-                self.cds_dec_trends[month][decade].data.update(self._dec_trend(self.da, month, ref_per, offset)[decade].data)
+                self.cds_dec_trends[month][decade].data.update(self._dec_trend(self.da, month, ref_per, offset)[decade]
+                                                               .data)
 
     def _get_colours(self):
         months = [m for m in range(1, 13)]

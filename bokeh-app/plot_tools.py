@@ -3,7 +3,7 @@ from bokeh.plotting import figure
 from xarray import DataArray
 
 
-def monthly_attrs(index: str, area: str, last_month: str):
+def monthly_attrs(anomaly: str, index: str, area: str, last_month: str) -> tuple[str, str, str]:
     index_name = {'sie': 'Sea Ice Extent', 'sia': 'Sea Ice Area'}
     area_name = {'glb': 'Global', 'nh': 'Northern Hemisphere', 'sh': 'Southern Hemisphere',
                  'baffin': 'Baffin Bay and Labrador Seas', 'baltic': 'Baltic Sea', 'barents': 'Barents Sea',
@@ -15,11 +15,18 @@ def monthly_attrs(index: str, area: str, last_month: str):
                  'bell': 'Amundsen-Bellingshausen Sea', 'drml': 'Dronning Maud Land', 'indi': 'Indian Ocean',
                  'ross': 'Ross Sea', 'trol': 'Troll Station', 'wedd': 'Weddell Sea', 'wpac': 'Western Pacific Ocean'}
 
-    title = f'Monthly Mean {index_name[index]} v3.0, {area_name[area]}'
-    yaxis = f'{index_name[index]} [million km²]'
-    label = 'Data: Derived from OSI SAF Sea Ice Concentration CDRs v3\n' \
-            'Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n' \
-            f'Last data point: {last_month}'
+    if anomaly == 'anom':
+        title = f'Monthly Mean {index_name[index]} Anomaly v3.0, {area_name[area]}'
+        yaxis = f'{index_name[index]} Anomaly [million km²]'
+        label = 'Data: Derived from OSI SAF Sea Ice Concentration CDRs v3\n' \
+                'Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n' \
+                f'Last data point: {last_month}'
+    else:
+        title = f'Monthly Mean {index_name[index]} v3.0, {area_name[area]}'
+        yaxis = f'{index_name[index]} [million km²]'
+        label = 'Data: Derived from OSI SAF Sea Ice Concentration CDRs v3\n' \
+                'Source: EUMETSAT OSI SAF data with R&D input from ESA CCI\n' \
+                f'Last data point: {last_month}'
 
     return title, yaxis, label
 

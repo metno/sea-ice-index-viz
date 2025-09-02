@@ -28,7 +28,7 @@ pn.extension(exception_handler=exception_handler, notifications=True)
 
 # Add a parameter for setting the desired version of the sea ice data, and sync to url parameter.
 class VersionUrlParameter(param.Parameterized):
-    value = param.Parameter("v2p2")
+    value = param.Parameter("v2p3")
 
 
 pn.state.location.sync(VersionUrlParameter, {"value": "version"})
@@ -298,6 +298,9 @@ try:
         cdr_version = "v2.1"
     elif extracted_data["ds_version"] == "v2p2":
         version_label = "v2.2"
+        cdr_version = "v3"
+    elif extracted_data["ds_version"] == "v2p3":
+        version_label = "v2.3"
         cdr_version = "v3"
 
     last_month_string = str(da.time[-1].dt.strftime('%Y-%m').values)

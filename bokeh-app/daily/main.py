@@ -27,7 +27,7 @@ pn.extension(exception_handler=exception_handler, notifications=True)
 
 # Add a parameter for setting the desired version of the sea ice data, and sync to url parameter.
 class VersionUrlParameter(param.Parameterized):
-    value = param.Parameter("v2p2")
+    value = param.Parameter("v2p3")
 
 
 pn.state.location.sync(VersionUrlParameter, {'value': 'version'})
@@ -507,6 +507,9 @@ try:
         cdr_version = "v2.1"
     elif extracted_data["ds_version"] == "v2p2":
         version_label = "v2.2"
+        cdr_version = "v3"
+    elif extracted_data["ds_version"] == "v2p3":
+        version_label = "v2.3"
         cdr_version = "v3"
 
     label_text = f"Median and percentiles (25-75% and 10-90%) for {reference_period_selector.value}, " \

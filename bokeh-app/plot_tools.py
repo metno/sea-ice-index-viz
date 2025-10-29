@@ -3,52 +3,117 @@ from bokeh.plotting import figure
 from xarray import DataArray
 
 
-def monthly_attrs(anomaly: str, index: str, area: str, last_month: str) -> tuple[str, str, str]:
+def monthly_attrs(
+    anomaly: str, index: str, area: str, last_month: str
+) -> tuple[str, str, str]:
     index_name = {'sie': 'Sea Ice Extent', 'sia': 'Sea Ice Area'}
-    area_name = {'glb': 'Global', 'nh': 'Northern Hemisphere', 'sh': 'Southern Hemisphere',
-                 'baffin': 'Baffin Bay and Labrador Seas', 'baltic': 'Baltic Sea', 'barents': 'Barents Sea',
-                 'beaufort': 'Beaufort Sea', 'bering': 'Bering Sea', 'bohai': 'Bohai and Yellow Seas',
-                 'canarch': 'Canadian Archipelago', 'centralarc': 'Central Arctic', 'chukchi': 'Chukchi Sea',
-                 'greenland': 'East Greenland Sea', 'ess': 'East Siberian Sea', 'alaska': 'Gulf of Alaska',
-                 'lawrence': 'Gulf of St. Lawrence', 'hudson': 'Hudson Bay', 'kara': 'Kara Sea', 'laptev': 'Laptev Sea',
-                 'japan': 'Sea of Japan', 'okhotsk': 'Sea of Okhotsk', 'sval': 'Svalbard',
-                 'bell': 'Amundsen-Bellingshausen Sea', 'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
-                 'drml': 'Dronning Maud Land', 'ea-rh': 'East Antarctica (RH)', 'indi': 'Indian Ocean',
-                 'khs-rh': 'King Haakon VII Sea (RH)', 'ross': 'Ross Sea', 'ross-rh': 'Ross Sea (RH)',
-                 'trol': 'Troll Station', 'wedd': 'Weddell Sea', 'wedd-rh': 'Weddell Sea (RH)',
-                 'wpac': 'Western Pacific Ocean'}
+    area_name = {
+        'glb': 'Global',
+        'nh': 'Northern Hemisphere',
+        'sh': 'Southern Hemisphere',
+        'baffin': 'Baffin Bay and Labrador Seas',
+        'baltic': 'Baltic Sea',
+        'barents': 'Barents Sea',
+        'beaufort': 'Beaufort Sea',
+        'bering': 'Bering Sea',
+        'bohai': 'Bohai and Yellow Seas',
+        'canarch': 'Canadian Archipelago',
+        'centralarc': 'Central Arctic',
+        'chukchi': 'Chukchi Sea',
+        'greenland': 'East Greenland Sea',
+        'ess': 'East Siberian Sea',
+        'alaska': 'Gulf of Alaska',
+        'lawrence': 'Gulf of St. Lawrence',
+        'hudson': 'Hudson Bay',
+        'kara': 'Kara Sea',
+        'laptev': 'Laptev Sea',
+        'japan': 'Sea of Japan',
+        'okhotsk': 'Sea of Okhotsk',
+        'sval': 'Svalbard',
+        'bell': 'Amundsen-Bellingshausen Sea',
+        'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
+        'drml': 'Dronning Maud Land',
+        'ea-rh': 'East Antarctica (RH)',
+        'indi': 'Indian Ocean',
+        'khs-rh': 'King Haakon VII Sea (RH)',
+        'ross': 'Ross Sea',
+        'ross-rh': 'Ross Sea (RH)',
+        'trol': 'Troll Station',
+        'wedd': 'Weddell Sea',
+        'wedd-rh': 'Weddell Sea (RH)',
+        'wpac': 'Western Pacific Ocean',
+    }
 
     if anomaly == 'anom':
-        title = f'Monthly Mean {index_name[index]} Anomaly v3.0, {area_name[area]}'
+        title = (
+            f'Monthly Mean {index_name[index]} Anomaly v3.0, {area_name[area]}'
+        )
         yaxis = f'{index_name[index]} Anomaly [million km²]'
-        label = 'OSI SAF Sea Ice Index v3\n' \
-                'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n' \
-                f'Last data point: {last_month}'
+        label = (
+            'OSI SAF Sea Ice Index v3\n'
+            'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n'
+            f'Last data point: {last_month}'
+        )
     else:
         title = f'Monthly Mean {index_name[index]} v3.0, {area_name[area]}'
         yaxis = f'{index_name[index]} [million km²]'
-        label = 'OSI SAF Sea Ice Index v3\n' \
-                'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n' \
-                f'Last data point: {last_month}'
+        label = (
+            'OSI SAF Sea Ice Index v3\n'
+            'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n'
+            f'Last data point: {last_month}'
+        )
 
     return title, yaxis, label
 
 
-def daily_attrs(anomaly: str, index: str, area: str, ref_per: str, last_date: str, pct_vis: bool, minmax_vis: bool,
-                first_year: int, last_year: int):
+def daily_attrs(
+    anomaly: str,
+    index: str,
+    area: str,
+    ref_per: str,
+    last_date: str,
+    pct_vis: bool,
+    minmax_vis: bool,
+    first_year: int,
+    last_year: int,
+):
     index_name = {'sie': 'Sea Ice Extent', 'sia': 'Sea Ice Area'}
-    area_name = {'glb': 'Global', 'nh': 'Northern Hemisphere', 'sh': 'Southern Hemisphere',
-                 'baffin': 'Baffin Bay and Labrador Seas', 'baltic': 'Baltic Sea', 'barents': 'Barents Sea',
-                 'beaufort': 'Beaufort Sea', 'bering': 'Bering Sea', 'bohai': 'Bohai and Yellow Seas',
-                 'canarch': 'Canadian Archipelago', 'centralarc': 'Central Arctic', 'chukchi': 'Chukchi Sea',
-                 'greenland': 'East Greenland Sea', 'ess': 'East Siberian Sea', 'alaska': 'Gulf of Alaska',
-                 'lawrence': 'Gulf of St. Lawrence', 'hudson': 'Hudson Bay', 'kara': 'Kara Sea', 'laptev': 'Laptev Sea',
-                 'japan': 'Sea of Japan', 'okhotsk': 'Sea of Okhotsk', 'sval': 'Svalbard',
-                 'bell': 'Amundsen-Bellingshausen Sea', 'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
-                 'drml': 'Dronning Maud Land', 'ea-rh': 'East Antarctica (RH)', 'indi': 'Indian Ocean',
-                 'khs-rh': 'King Haakon VII Sea (RH)', 'ross': 'Ross Sea', 'ross-rh': 'Ross Sea (RH)',
-                 'trol': 'Troll Station', 'wedd': 'Weddell Sea', 'wedd-rh': 'Weddell Sea (RH)',
-                 'wpac': 'Western Pacific Ocean'}
+    area_name = {
+        'glb': 'Global',
+        'nh': 'Northern Hemisphere',
+        'sh': 'Southern Hemisphere',
+        'baffin': 'Baffin Bay and Labrador Seas',
+        'baltic': 'Baltic Sea',
+        'barents': 'Barents Sea',
+        'beaufort': 'Beaufort Sea',
+        'bering': 'Bering Sea',
+        'bohai': 'Bohai and Yellow Seas',
+        'canarch': 'Canadian Archipelago',
+        'centralarc': 'Central Arctic',
+        'chukchi': 'Chukchi Sea',
+        'greenland': 'East Greenland Sea',
+        'ess': 'East Siberian Sea',
+        'alaska': 'Gulf of Alaska',
+        'lawrence': 'Gulf of St. Lawrence',
+        'hudson': 'Hudson Bay',
+        'kara': 'Kara Sea',
+        'laptev': 'Laptev Sea',
+        'japan': 'Sea of Japan',
+        'okhotsk': 'Sea of Okhotsk',
+        'sval': 'Svalbard',
+        'bell': 'Amundsen-Bellingshausen Sea',
+        'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
+        'drml': 'Dronning Maud Land',
+        'ea-rh': 'East Antarctica (RH)',
+        'indi': 'Indian Ocean',
+        'khs-rh': 'King Haakon VII Sea (RH)',
+        'ross': 'Ross Sea',
+        'ross-rh': 'Ross Sea (RH)',
+        'trol': 'Troll Station',
+        'wedd': 'Weddell Sea',
+        'wedd-rh': 'Weddell Sea (RH)',
+        'wpac': 'Western Pacific Ocean',
+    }
 
     if anomaly == 'abs':
         title = f'Daily {index_name[index]} v3.0, {area_name[area]}'
@@ -72,27 +137,41 @@ def daily_attrs(anomaly: str, index: str, area: str, ref_per: str, last_date: st
         if minmax_vis:
             label += f'Min/max for {first_year}-{last_year - 1}\n'
 
-    label += f'OSI SAF Sea Ice Index v3\n' \
-             'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n' \
-             f'Last data point: {last_date}'
+    label += (
+        f'OSI SAF Sea Ice Index v3\n'
+        'EUMETSAT OSI SAF Licensed under CC-BY 4.0\n'
+        f'Last data point: {last_date}'
+    )
 
     return title, ylabel, label
 
 
 class Tooltips:
-    def __init__(self, anom: str, yearly_glyphs: list, min_glyphs: list, max_glyphs: list) -> None:
-        self.yearly = HoverTool(renderers=yearly_glyphs,
-                                tooltips=self._yr_tooltips(self._value_fmt(anom)),
-                                formatters={'@rank': self._rank_fmt()},
-                                visible=False)
-        self.min = HoverTool(renderers=min_glyphs,
-                             tooltips=self.yr_min_tooltips(self._value_fmt(anom)),
-                             formatters={'@rank': self._rank_fmt()},
-                             visible=False)
-        self.max = HoverTool(renderers=max_glyphs,
-                             tooltips=self.yr_max_tooltips(self._value_fmt(anom)),
-                             formatters={'@rank': self._rank_fmt()},
-                             visible=False)
+    def __init__(
+        self,
+        anom: str,
+        yearly_glyphs: list,
+        min_glyphs: list,
+        max_glyphs: list,
+    ) -> None:
+        self.yearly = HoverTool(
+            renderers=yearly_glyphs,
+            tooltips=self._yr_tooltips(self._value_fmt(anom)),
+            formatters={'@rank': self._rank_fmt()},
+            visible=False,
+        )
+        self.min = HoverTool(
+            renderers=min_glyphs,
+            tooltips=self.yr_min_tooltips(self._value_fmt(anom)),
+            formatters={'@rank': self._rank_fmt()},
+            visible=False,
+        )
+        self.max = HoverTool(
+            renderers=max_glyphs,
+            tooltips=self.yr_max_tooltips(self._value_fmt(anom)),
+            formatters={'@rank': self._rank_fmt()},
+            visible=False,
+        )
 
     def update(self, anom: str) -> None:
         self.yearly.update(tooltips=self._yr_tooltips(self._value_fmt(anom)))
@@ -177,20 +256,29 @@ class Tooltips:
         return tooltips
 
     def _rank_fmt(self) -> CustomJSHover:
-        rank_fmt = CustomJSHover(code="""
+        rank_fmt = CustomJSHover(
+            code="""
         if (Number.isInteger(value)) {
           return value.toFixed();
         } else {
           return value.toFixed(1);
         }
-        """)
+        """
+        )
 
         return rank_fmt
 
 
-def set_zoom_yrange(plot: figure, da: DataArray, offset: float, anom: str, padding_frac: float = 0.05) -> None:
-    # Set the y-range between the minimum and maximum values plus a little padding. Also account for the height
-    # of the text label in the lower left corner by lowering the start value of the y-range accordingly.
+def set_zoom_yrange(
+    plot: figure,
+    da: DataArray,
+    offset: float,
+    anom: str,
+    padding_frac: float = 0.05,
+) -> None:
+    # Set the y-range between the minimum and maximum values plus a little
+    # padding. Also account for the height of the text label in the lower
+    # left corner by lowering the start value of the y-range accordingly.
 
     # Find the x-range.
     doy_start = plot.x_range.start
@@ -201,8 +289,12 @@ def set_zoom_yrange(plot: figure, da: DataArray, offset: float, anom: str, paddi
     max_per_doy = da.groupby('time.dayofyear').max()
 
     # Find the lowest min and highest max values inside the x-range displayed.
-    visible_min = min_per_doy.sel(dayofyear=slice(doy_start, doy_end)).min().values
-    visible_max = max_per_doy.sel(dayofyear=slice(doy_start, doy_end)).max().values
+    visible_min = (
+        min_per_doy.sel(dayofyear=slice(doy_start, doy_end)).min().values
+    )
+    visible_max = (
+        max_per_doy.sel(dayofyear=slice(doy_start, doy_end)).max().values
+    )
 
     label_fraction = offset / plot.inner_height
 
@@ -213,8 +305,9 @@ def set_zoom_yrange(plot: figure, da: DataArray, offset: float, anom: str, paddi
         visible_max = max(abs(visible_min), abs(visible_max))
         text_label_height = label_fraction * 2 * visible_max
 
-    # Sometimes the minimum and maximum values are the same. Account for this to always have some padding.
-    if visible_max - visible_min < 1E-3:
+    # Sometimes the minimum and maximum values are the same. Account for this
+    # to always have some padding.
+    if visible_max - visible_min < 1e-3:
         padding = visible_max * padding_frac
     else:
         padding = (visible_max - visible_min) * padding_frac
@@ -238,20 +331,20 @@ def now_zoom(plot: figure, da: DataArray, offset: float, anom: str) -> None:
     last_doy = da.time.dt.dayofyear.values[-1]
     x_range_start = last_doy - 30
     x_range_end = last_doy + 30
-    plot.x_range.start = (x_range_start if x_range_start > 1 else 1)
-    plot.x_range.end = (x_range_end if x_range_end < 366 else 366)
+    plot.x_range.start = x_range_start if x_range_start > 1 else 1
+    plot.x_range.end = x_range_end if x_range_end < 366 else 366
     set_zoom_yrange(plot, da, offset, anom)
 
 
 def min_zoom(plot: figure, da: DataArray, offset: float, anom: str) -> None:
     doy_min = da.groupby('time.dayofyear').median().idxmin().values.astype(int)
-    plot.x_range.start = (doy_min - 30 if doy_min - 30 > 1 else 1)
-    plot.x_range.end = (doy_min + 30 if doy_min + 30 < 366 else 366)
+    plot.x_range.start = doy_min - 30 if doy_min - 30 > 1 else 1
+    plot.x_range.end = doy_min + 30 if doy_min + 30 < 366 else 366
     set_zoom_yrange(plot, da, offset, anom)
 
 
 def max_zoom(plot: figure, da: DataArray, offset: float, anom: str) -> None:
     doy_max = da.groupby('time.dayofyear').median().idxmax().values.astype(int)
-    plot.x_range.start = (doy_max - 30 if doy_max - 30 > 1 else 1)
-    plot.x_range.end = (doy_max + 30 if doy_max + 30 < 366 else 366)
+    plot.x_range.start = doy_max - 30 if doy_max - 30 > 1 else 1
+    plot.x_range.end = doy_max + 30 if doy_max + 30 < 366 else 366
     set_zoom_yrange(plot, da, offset, anom)

@@ -9,8 +9,12 @@ from numpy.typing import NDArray
 
 
 class VisDataDaily:
-    def __init__(self, anomaly: str, index: str, area: str, ref_period: str, cmap: str) -> None:
-        self.ds_daily, ds_clim, ds_decades = self._download_data(anomaly, index, area, ref_period)
+    def __init__(
+        self, anomaly: str, index: str, area: str, ref_period: str, cmap: str
+    ) -> None:
+        self.ds_daily, ds_clim, ds_decades = self._download_data(
+            anomaly, index, area, ref_period
+        )
 
         self.cds_p10_90 = ColumnDataSource(self._p10_90(ds_clim, index))
         self.cds_p25_75 = ColumnDataSource(self._p25_75(ds_clim, index))
@@ -21,7 +25,9 @@ class VisDataDaily:
         self.cds_decades = {}
         for decade, decadal_data in ds_decades.items():
             cds_span = ColumnDataSource(self._span(decadal_data, index))
-            cds_median = ColumnDataSource(self._decade_median(decadal_data, index))
+            cds_median = ColumnDataSource(
+                self._decade_median(decadal_data, index)
+            )
 
             self.cds_decades[decade] = [cds_span, cds_median]
 
@@ -32,16 +38,28 @@ class VisDataDaily:
         for year in years:
             subset = da.sel(time=year)
             rank = self.ds_daily.rank_per_doy.sel(time=year)
-            self.cds_yearly[year] = ColumnDataSource(self._yearly(subset, rank))
+            self.cds_yearly[year] = ColumnDataSource(
+                self._yearly(subset, rank)
+            )
 
         self.colours = self._get_colours(years[:-1])
-        cols = [self.colours[cmap][str(year)] for year in self.ds_daily.year.values]
+        cols = [
+            self.colours[cmap][str(year)] for year in self.ds_daily.year.values
+        ]
 
-        self.cds_yearly_min = ColumnDataSource(self._year_min(self.ds_daily, cols))
-        self.cds_yearly_max = ColumnDataSource(self._year_max(self.ds_daily, cols))
+        self.cds_yearly_min = ColumnDataSource(
+            self._year_min(self.ds_daily, cols)
+        )
+        self.cds_yearly_max = ColumnDataSource(
+            self._year_max(self.ds_daily, cols)
+        )
 
-    def update_data(self, anomaly: str, index: str, area: str, ref_period: str, cmap: str) -> None:
-        self.ds_daily, ds_clim, ds_decades = self._download_data(anomaly, index, area, ref_period)
+    def update_data(
+        self, anomaly: str, index: str, area: str, ref_period: str, cmap: str
+    ) -> None:
+        self.ds_daily, ds_clim, ds_decades = self._download_data(
+            anomaly, index, area, ref_period
+        )
 
         self.cds_p10_90.data.update(self._p10_90(ds_clim, index))
         self.cds_p25_75.data.update(self._p25_75(ds_clim, index))
@@ -50,8 +68,12 @@ class VisDataDaily:
         self.cds_max.data.update(self._max(self.ds_daily))
 
         for decade, decadal_data in ds_decades.items():
-            self.cds_decades[decade][0].data.update(self._span(decadal_data, index))
-            self.cds_decades[decade][1].data.update(self._decade_median(decadal_data, index))
+            self.cds_decades[decade][0].data.update(
+                self._span(decadal_data, index)
+            )
+            self.cds_decades[decade][1].data.update(
+                self._decade_median(decadal_data, index)
+            )
 
         years = np.unique(self.ds_daily.time.dt.year.values).astype(str)
 
@@ -62,13 +84,17 @@ class VisDataDaily:
             self.cds_yearly[year].data.update(self._yearly(subset, rank))
 
         self.colours = self._get_colours(years[:-1])
-        cols = [self.colours[cmap][str(year)] for year in self.ds_daily.year.values]
+        cols = [
+            self.colours[cmap][str(year)] for year in self.ds_daily.year.values
+        ]
 
         self.cds_yearly_min.data.update(self._year_min(self.ds_daily, cols))
         self.cds_yearly_max.data.update(self._year_max(self.ds_daily, cols))
 
     def update_colour(self, cmap: str) -> None:
-        cols = [self.colours[cmap][str(year)] for year in self.ds_daily.year.values]
+        cols = [
+            self.colours[cmap][str(year)] for year in self.ds_daily.year.values
+        ]
 
         yearly_min = self.cds_yearly_min.data
         yearly_min['colour'] = cols
@@ -78,12 +104,15 @@ class VisDataDaily:
         self.cds_yearly_min.data.update(yearly_min)
         self.cds_yearly_max.data.update(yearly_max)
 
-    def _download_data(self, anomaly: str, index: str, area: str, ref_period: str)\
-            -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
-        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0'
+    def _download_data(
+        self, anomaly: str, index: str, area: str, ref_period: str
+    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
+        dir = ('https://thredds.met.no/thredds/dodsC/metusers/signeaa/'
+               'test-data-sii-v3p0')
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_sii-v3p0_daily.nc'
+        path = (f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_'
+                f'sii-v3p0_daily.nc')
         ds_daily = xr.open_dataset(path, cache=False).load()
 
         # Change to get test files working: use hardcoded climatology paths.
@@ -94,25 +123,37 @@ class VisDataDaily:
 
         for clim in clim_periods:
             ds = xr.open_dataset(
-                f'{dir}/clim/{area}/{index_translation[index]}_{area}_sii-v3p0_daily-climatology-{clim}.nc',
-                cache=False).load()
+                f'{dir}/clim/{area}/{index_translation[index]}_'
+                f'{area}_sii-v3p0_daily-climatology-{clim}.nc',
+                cache=False,
+            ).load()
             ds_clims[ds.attrs['climatology_period']] = ds
 
         for dec in decades:
             ds = xr.open_dataset(
-                f'{dir}/clim/{area}/{index_translation[index]}_{area}_sii-v3p0_daily-climatology-{dec}.nc',
-                cache=False).load()
+                f'{dir}/clim/{area}/{index_translation[index]}_'
+                f'{area}_sii-v3p0_daily-climatology-{dec}.nc',
+                cache=False,
+            ).load()
             ds_decades[ds.attrs['climatology_period']] = ds
 
         ds_clim = ds_clims[ref_period]
 
         if anomaly == 'anom':
-            ds_daily, ds_clim, ds_decades = self._get_anomaly(index, ref_period, ds_daily, ds_clim, ds_decades)
+            ds_daily, ds_clim, ds_decades = self._get_anomaly(
+                index, ref_period, ds_daily, ds_clim, ds_decades
+            )
 
         return ds_daily, ds_clim, ds_decades
 
-    def _get_anomaly(self, index: str, ref_period: str, ds_daily: xr.Dataset, ds_clim: xr.Dataset,
-                     ds_decades: dict[str, xr.Dataset]) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
+    def _get_anomaly(
+        self,
+        index: str,
+        ref_period: str,
+        ds_daily: xr.Dataset,
+        ds_clim: xr.Dataset,
+        ds_decades: dict[str, xr.Dataset],
+    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
         start = ref_period[:4]
         end = ref_period[5:]
 
@@ -124,21 +165,41 @@ class VisDataDaily:
 
         mean = da.sel(time=slice(start, end)).groupby('time.dayofyear').mean()
 
-        ds_clim[f'{index}_10pctile'].values = ds_clim[f'{index}_10pctile'].values - mean.values
-        ds_clim[f'{index}_90pctile'].values = ds_clim[f'{index}_90pctile'].values - mean.values
+        ds_clim[f'{index}_10pctile'].values = (
+            ds_clim[f'{index}_10pctile'].values - mean.values
+        )
+        ds_clim[f'{index}_90pctile'].values = (
+            ds_clim[f'{index}_90pctile'].values - mean.values
+        )
 
-        ds_clim[f'{index}_25pctile'].values = ds_clim[f'{index}_25pctile'].values - mean.values
-        ds_clim[f'{index}_75pctile'].values = ds_clim[f'{index}_75pctile'].values - mean.values
+        ds_clim[f'{index}_25pctile'].values = (
+            ds_clim[f'{index}_25pctile'].values - mean.values
+        )
+        ds_clim[f'{index}_75pctile'].values = (
+            ds_clim[f'{index}_75pctile'].values - mean.values
+        )
 
-        ds_clim[f'{index}_median'].values = ds_clim[f'{index}_median'].values - mean.values
+        ds_clim[f'{index}_median'].values = (
+            ds_clim[f'{index}_median'].values - mean.values
+        )
 
-        ds_daily['min_per_doy'].values = ds_daily.min_per_doy.values - mean.values
-        ds_daily['max_per_doy'].values = ds_daily.max_per_doy.values - mean.values
+        ds_daily['min_per_doy'].values = (
+            ds_daily.min_per_doy.values - mean.values
+        )
+        ds_daily['max_per_doy'].values = (
+            ds_daily.max_per_doy.values - mean.values
+        )
 
         for decade in ds_decades.keys():
-            ds_decades[decade][f'{index}_min'].values = ds_decades[decade][f'{index}_min'].values - mean.values
-            ds_decades[decade][f'{index}_max'].values = ds_decades[decade][f'{index}_max'].values - mean.values
-            ds_decades[decade][f'{index}_median'].values = ds_decades[decade][f'{index}_median'].values - mean.values
+            ds_decades[decade][f'{index}_min'].values = (
+                ds_decades[decade][f'{index}_min'].values - mean.values
+            )
+            ds_decades[decade][f'{index}_max'].values = (
+                ds_decades[decade][f'{index}_max'].values - mean.values
+            )
+            ds_decades[decade][f'{index}_median'].values = (
+                ds_decades[decade][f'{index}_median'].values - mean.values
+            )
 
         da = ds_daily[index].convert_calendar('all_leap')
         ds_daily[index].values = (da.groupby('time.dayofyear') - mean).values
@@ -147,8 +208,12 @@ class VisDataDaily:
         year_max = ds_daily['yearly_max_value'].values
 
         for i, year in enumerate(ds_daily['year'].values):
-            doy_min = ds_daily.sel(year=year).yearly_min_date.dt.dayofyear.values
-            doy_max = ds_daily.sel(year=year).yearly_max_date.dt.dayofyear.values
+            doy_min = ds_daily.sel(
+                year=year
+            ).yearly_min_date.dt.dayofyear.values
+            doy_max = ds_daily.sel(
+                year=year
+            ).yearly_max_date.dt.dayofyear.values
 
             year_min[i] = year_min[i] - mean.sel(dayofyear=doy_min).values
             year_max[i] = year_max[i] - mean.sel(dayofyear=doy_max).values
@@ -159,15 +224,24 @@ class VisDataDaily:
         return ds_daily, ds_clim, ds_decades
 
     def _p10_90(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
-        return {'doy': ds.time.dt.dayofyear.values, 'p10': ds[f'{index}_10pctile'].values,
-                'p90': ds[f'{index}_90pctile'].values}
+        return {
+            'doy': ds.time.dt.dayofyear.values,
+            'p10': ds[f'{index}_10pctile'].values,
+            'p90': ds[f'{index}_90pctile'].values,
+        }
 
     def _p25_75(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
-        return {'doy': ds.time.dt.dayofyear.values, 'p25': ds[f'{index}_25pctile'].values,
-                'p75': ds[f'{index}_75pctile'].values}
+        return {
+            'doy': ds.time.dt.dayofyear.values,
+            'p25': ds[f'{index}_25pctile'].values,
+            'p75': ds[f'{index}_75pctile'].values,
+        }
 
     def _median(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
-        return {'doy': ds.time.dt.dayofyear.values, 'value': ds[f'{index}_median'].values}
+        return {
+            'doy': ds.time.dt.dayofyear.values,
+            'value': ds[f'{index}_median'].values,
+        }
 
     def _min(self, ds: xr.Dataset) -> dict[str, NDArray[float]]:
         return {'doy': ds.dayofyear.values, 'value': ds.min_per_doy.values}
@@ -176,40 +250,104 @@ class VisDataDaily:
         return {'doy': ds.dayofyear.values, 'value': ds.max_per_doy.values}
 
     def _span(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
-        return {'doy': ds.time.dt.dayofyear.values, 'min': ds[f'{index}_min'].values, 'max': ds[f'{index}_max'].values}
+        return {
+            'doy': ds.time.dt.dayofyear.values,
+            'min': ds[f'{index}_min'].values,
+            'max': ds[f'{index}_max'].values,
+        }
 
-    def _decade_median(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
-        return {'doy': ds.time.dt.dayofyear.values, 'value': ds[f'{index}_median'].values}
+    def _decade_median(
+        self, ds: xr.Dataset, index: str
+    ) -> dict[str, NDArray[float]]:
+        return {
+            'doy': ds.time.dt.dayofyear.values,
+            'value': ds[f'{index}_median'].values,
+        }
 
-    def _yearly(self, da: xr.Dataset, rank: xr.DataArray) -> dict[str, NDArray[float]]:
-        return {'doy': da.time.dt.dayofyear.values, 'value': da.values, 'date': da.time.dt.strftime('%Y-%m-%d').values,
-                'rank': rank.values}
+    def _yearly(
+        self, da: xr.Dataset, rank: xr.DataArray
+    ) -> dict[str, NDArray[float]]:
+        return {
+            'doy': da.time.dt.dayofyear.values,
+            'value': da.values,
+            'date': da.time.dt.strftime('%Y-%m-%d').values,
+            'rank': rank.values,
+        }
 
     def _year_min(self, ds: xr.Dataset, colours: NDArray[str] | list[str]):
-        return {'doy': ds.yearly_min_date.dt.dayofyear.values, 'value': ds.yearly_min_value.values,
-                'date': ds.yearly_min_date.dt.strftime('%Y-%m-%d').values, 'rank': ds.yearly_min_rank.values,
-                'colour': colours}
+        return {
+            'doy': ds.yearly_min_date.dt.dayofyear.values,
+            'value': ds.yearly_min_value.values,
+            'date': ds.yearly_min_date.dt.strftime('%Y-%m-%d').values,
+            'rank': ds.yearly_min_rank.values,
+            'colour': colours,
+        }
 
     def _year_max(self, ds: xr.Dataset, colours: NDArray[str] | list[str]):
-        return {'doy': ds.yearly_max_date.dt.dayofyear.values, 'value': ds.yearly_max_value.values,
-                'date': ds.yearly_max_date.dt.strftime('%Y-%m-%d').values, 'rank': ds.yearly_max_rank.values,
-                'colour': colours}
+        return {
+            'doy': ds.yearly_max_date.dt.dayofyear.values,
+            'value': ds.yearly_max_value.values,
+            'date': ds.yearly_max_date.dt.strftime('%Y-%m-%d').values,
+            'rank': ds.yearly_max_rank.values,
+            'colour': colours,
+        }
 
     def _get_colours(self, years: NDArray) -> dict[str, NDArray[str]]:
         colours = {}
 
         colours['decadal'] = self._decadal_colours()
 
-        cyclic_8 = ['#ffe119', '#4363d8', '#f58231', '#dcbeff', '#800000', '#000075', '#a9a9a9', '#000000']
+        cyclic_8 = [
+            '#ffe119',
+            '#4363d8',
+            '#f58231',
+            '#dcbeff',
+            '#800000',
+            '#000075',
+            '#a9a9a9',
+            '#000000',
+        ]
         colours['cyclic_8'] = self._cyclic_colours(cyclic_8, years)
 
-        cyclic_17 = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#42d4f4', '#f032e6', '#fabed4', '#469990',
-                     '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#000075', '#a9a9a9', '#000000']
+        cyclic_17 = [
+            '#e6194B',
+            '#3cb44b',
+            '#ffe119',
+            '#4363d8',
+            '#f58231',
+            '#42d4f4',
+            '#f032e6',
+            '#fabed4',
+            '#469990',
+            '#dcbeff',
+            '#9A6324',
+            '#fffac8',
+            '#800000',
+            '#aaffc3',
+            '#000075',
+            '#a9a9a9',
+            '#000000',
+        ]
         colours['cyclic_17'] = self._cyclic_colours(cyclic_17, years)
 
-        names = ['viridis', 'viridis_r', 'plasma', 'plasma_r', 'batlow', 'batlow_r', 'batlowS']
-        cmaps = [matplotlib.cm.viridis, matplotlib.cm.viridis_r, matplotlib.cm.plasma, matplotlib.cm.plasma_r,
-                 cmc.batlow, cmc.batlow_r, cmc.batlowS]
+        names = [
+            'viridis',
+            'viridis_r',
+            'plasma',
+            'plasma_r',
+            'batlow',
+            'batlow_r',
+            'batlowS',
+        ]
+        cmaps = [
+            matplotlib.cm.viridis,
+            matplotlib.cm.viridis_r,
+            matplotlib.cm.plasma,
+            matplotlib.cm.plasma_r,
+            cmc.batlow,
+            cmc.batlow_r,
+            cmc.batlowS,
+        ]
 
         for name, cmap in zip(names, cmaps):
             colours[name] = self._cmap_colours(years, cmap)
@@ -218,15 +356,24 @@ class VisDataDaily:
 
     def _decadal_colours(self) -> dict[str, str]:
         decades = [1970, 1980, 1990, 2000, 2010, 2020]
-        cmaps = [matplotlib.cm.Purples_r, matplotlib.cm.Purples_r, matplotlib.cm.Blues_r, matplotlib.cm.Greens_r,
-                 matplotlib.cm.Reds_r, matplotlib.cm.Wistia_r]
+        cmaps = [
+            matplotlib.cm.Purples_r,
+            matplotlib.cm.Purples_r,
+            matplotlib.cm.Blues_r,
+            matplotlib.cm.Greens_r,
+            matplotlib.cm.Reds_r,
+            matplotlib.cm.Wistia_r,
+        ]
 
         colours = {}
-        # Don't use the full breadth of the colourmap, only go up till middle (halfway) to avoid the light colours.
+        # Don't use the full breadth of the colourmap, only go up till middle
+        # (halfway) to avoid the light colours.
         normalisation = np.linspace(0, 0.5, 10)
 
         for decade, cmap in zip(decades, cmaps):
-            hex_cols = [matplotlib.colors.to_hex(cols) for cols in cmap(normalisation)]
+            hex_cols = [
+                matplotlib.colors.to_hex(cols) for cols in cmap(normalisation)
+            ]
             years_in_decade = np.arange(decade, decade + 10, 1).astype(str)
 
             for year, col in zip(years_in_decade, hex_cols):
@@ -255,7 +402,15 @@ class VisDataDaily:
 
 
 class VisDataMonthly:
-    def __init__(self, anomaly: str, index: str, area: str, ref_per: str, cmap: str, offset: bool) -> None:
+    def __init__(
+        self,
+        anomaly: str,
+        index: str,
+        area: str,
+        ref_per: str,
+        cmap: str,
+        offset: bool,
+    ) -> None:
         self.ds = self._download_data(index, area)
         self.da = self.ds[index]
 
@@ -269,15 +424,23 @@ class VisDataMonthly:
         self.cds_full_trends = {}
         self.cds_dec_trends = {}
         for month in range(1, 13):
-            self.cds_months[month] = self._month(self.da, month, self.colours[month], offset)
-            self.cds_full_trends[month] = self._full_trend(self.ds, self.da, month, ref_per, offset)
-            self.cds_dec_trends[month] = self._dec_trend(self.da, month, ref_per, offset)
+            self.cds_months[month] = self._month(
+                self.da, month, self.colours[month], offset
+            )
+            self.cds_full_trends[month] = self._full_trend(
+                self.ds, self.da, month, ref_per, offset
+            )
+            self.cds_dec_trends[month] = self._dec_trend(
+                self.da, month, ref_per, offset
+            )
 
     def _download_data(self, index: str, area: str):
-        dir = f'https://thredds.met.no/thredds/dodsC/metusers/signeaa/test-data-sii-v3p0/sii_v3p0'
+        dir = ('https://thredds.met.no/thredds/dodsC/metusers/signeaa/'
+               'test-data-sii-v3p0/sii_v3p0')
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = f'{dir}/{area}/{index_translation[index]}_{area}_sii-v3p0_monthly.nc'
+        path = (f'{dir}/{area}/{index_translation[index]}_{area}_'
+                f'sii-v3p0_monthly.nc')
         ds = xr.open_dataset(path, cache=False).load()
 
         return ds
@@ -288,14 +451,23 @@ class VisDataMonthly:
         ref_subset = da.sel(time=slice(start, end))
 
         for i in range(1, 13):
-            mean = ref_subset[ref_subset.time.dt.month.isin([i])].mean(dim='time')
-            da.values[da.time.dt.month.isin([i]).values] = da.values[da.time.dt.month.isin([i]).values] - mean.values
+            mean = ref_subset[ref_subset.time.dt.month.isin([i])].mean(
+                dim='time'
+            )
+            da.values[da.time.dt.month.isin([i]).values] = (
+                da.values[da.time.dt.month.isin([i]).values] - mean.values
+            )
 
         return da
 
     def _all(self, da):
-        return ColumnDataSource({'year': da.time.dt.year.values + ((da.time.dt.month.values - 1) / 12),
-                                 'value': da.values})
+        return ColumnDataSource(
+            {
+                'year': da.time.dt.year.values
+                + ((da.time.dt.month.values - 1) / 12),
+                'value': da.values,
+            }
+        )
 
     def _month(self, da, month, colours, offset: bool):
         subset = da.sel(time=da.time.dt.month.isin(month))
@@ -306,35 +478,53 @@ class VisDataMonthly:
         else:
             x = year
 
-        return ColumnDataSource({'x': x,
-                                 'value': subset.values,
-                                 'rank': subset.rank('time').values,
-                                 'year': year,
-                                 'month': np.full(len(subset), calendar.month_name[month]),
-                                 'colour': np.full(len(subset), colours)})
+        return ColumnDataSource(
+            {
+                'x': x,
+                'value': subset.values,
+                'rank': subset.rank('time').values,
+                'year': year,
+                'month': np.full(len(subset), calendar.month_name[month]),
+                'colour': np.full(len(subset), colours),
+            }
+        )
 
     def _full_trend(self, ds, da, month, ref_per, offset: bool):
         absolute = ds['absolute_trend'].sel(month=month).values
-        relative = ds[f'relative_trend_{ref_per.replace('-', '_')}'].sel(month=month).values
+        relative = (
+            ds[f'relative_trend_{ref_per.replace("-", "_")}']
+            .sel(month=month)
+            .values
+        )
 
         subset = da.sel(time=ds.time.dt.month.isin(month)).dropna('time')
-        year = np.arange(subset.time.dt.year.values[0], subset.time.dt.year.values[-1]+1, 1)
+        year = np.arange(
+            subset.time.dt.year.values[0],
+            subset.time.dt.year.values[-1] + 1,
+            1,
+        )
 
         year_mean = subset.time.dt.year.mean().values
         value_mean = subset.mean().values
 
         thousand_per_million = 1000
-        value = value_mean - ((absolute / thousand_per_million) * (year_mean - year))
+        value = value_mean - (
+            (absolute / thousand_per_million) * (year_mean - year)
+        )
 
         if offset:
             year = year + ((subset.time.dt.month.values[0] - 1) / 12)
 
-        return ColumnDataSource({'year': year,
-                                 'value': value,
-                                 'abs_trend': np.full(len(year), absolute),
-                                 'rel_trend': np.full(len(year), relative),
-                                 'ref_per': np.full(len(year), ref_per),
-                                 'month': np.full(len(year), calendar.month_name[month])})
+        return ColumnDataSource(
+            {
+                'year': year,
+                'value': value,
+                'abs_trend': np.full(len(year), absolute),
+                'rel_trend': np.full(len(year), relative),
+                'ref_per': np.full(len(year), ref_per),
+                'month': np.full(len(year), calendar.month_name[month]),
+            }
+        )
 
     def _reg_coeffs(self, da):
         x = da.time.dt.year.values - da.time.dt.year.values[0]
@@ -343,9 +533,19 @@ class VisDataMonthly:
 
         return slope, constant
 
-    def _dec_trend(self, da, month, ref_per, offset: bool, decades=(1980, 1990, 2000, 2010), padding=0.1):
+    def _dec_trend(
+        self,
+        da,
+        month,
+        ref_per,
+        offset: bool,
+        decades=(1980, 1990, 2000, 2010),
+        padding=0.1,
+    ):
         subset = da.sel(time=da.time.dt.month.isin(month))
-        ref_baseline = subset.sel(time=slice(ref_per[:4], ref_per[5:])).mean().values
+        ref_baseline = (
+            subset.sel(time=slice(ref_per[:4], ref_per[5:])).mean().values
+        )
 
         trends = {}
         for decade in decades:
@@ -372,17 +572,23 @@ class VisDataMonthly:
             years[0] = years[0] + padding
             years[-1] = years[-1] + (1 - padding)
 
-            trends[f'{start}-{end}'] = ColumnDataSource({'year': years,
-                                                         'value': values,
-                                                         'month': np.full(len(years), calendar.month_name[month]),
-                                                         'decade': np.full(len(years), f'{start}-{end}'),
-                                                         'abs_trend': np.full(len(years), absolute_trend),
-                                                         'rel_trend': np.full(len(years), relative_trend),
-                                                         'ref_per': np.full(len(years), ref_per)})
+            trends[f'{start}-{end}'] = ColumnDataSource(
+                {
+                    'year': years,
+                    'value': values,
+                    'month': np.full(len(years), calendar.month_name[month]),
+                    'decade': np.full(len(years), f'{start}-{end}'),
+                    'abs_trend': np.full(len(years), absolute_trend),
+                    'rel_trend': np.full(len(years), relative_trend),
+                    'ref_per': np.full(len(years), ref_per),
+                }
+            )
 
         return trends
 
-    def update_data(self, anomaly: str, index: str, area: str, ref_per: str, offset: bool) -> None:
+    def update_data(
+        self, anomaly: str, index: str, area: str, ref_per: str, offset: bool
+    ) -> None:
         self.ds = self._download_data(index, area)
         self.da = self.ds[index]
 
@@ -392,27 +598,75 @@ class VisDataMonthly:
         self.cds_all.data.update(self._all(self.da).data)
 
         for month in range(1, 13):
-            self.cds_months[month].data.update(self._month(self.da, month, self.colours[month], offset).data)
-            self.cds_full_trends[month].data.update(self._full_trend(self.ds, self.da, month, ref_per, offset).data)
+            self.cds_months[month].data.update(
+                self._month(self.da, month, self.colours[month], offset).data
+            )
+            self.cds_full_trends[month].data.update(
+                self._full_trend(self.ds, self.da, month, ref_per, offset).data
+            )
 
             for decade in self.cds_dec_trends[month].keys():
-                self.cds_dec_trends[month][decade].data.update(self._dec_trend(self.da, month, ref_per, offset)[decade]
-                                                               .data)
+                self.cds_dec_trends[month][decade].data.update(
+                    self._dec_trend(self.da, month, ref_per, offset)[
+                        decade
+                    ].data
+                )
 
     def _get_colours(self):
         months = [m for m in range(1, 13)]
         colours = {}
 
-        cyclic_8 = ['#ffe119', '#4363d8', '#f58231', '#dcbeff', '#800000', '#000075', '#a9a9a9', '#000000']
+        cyclic_8 = [
+            '#ffe119',
+            '#4363d8',
+            '#f58231',
+            '#dcbeff',
+            '#800000',
+            '#000075',
+            '#a9a9a9',
+            '#000000',
+        ]
         colours['cyclic_8'] = self._cyclic_colours(cyclic_8, months)
 
-        cyclic_17 = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#42d4f4', '#f032e6', '#fabed4', '#469990',
-                     '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#000075', '#a9a9a9', '#000000']
+        cyclic_17 = [
+            '#e6194B',
+            '#3cb44b',
+            '#ffe119',
+            '#4363d8',
+            '#f58231',
+            '#42d4f4',
+            '#f032e6',
+            '#fabed4',
+            '#469990',
+            '#dcbeff',
+            '#9A6324',
+            '#fffac8',
+            '#800000',
+            '#aaffc3',
+            '#000075',
+            '#a9a9a9',
+            '#000000',
+        ]
         colours['cyclic_17'] = self._cyclic_colours(cyclic_17, months)
 
-        names = ['viridis', 'viridis_r', 'plasma', 'plasma_r', 'batlow', 'batlow_r', 'batlowS']
-        cmaps = [matplotlib.cm.viridis, matplotlib.cm.viridis_r, matplotlib.cm.plasma, matplotlib.cm.plasma_r,
-                 cmc.batlow, cmc.batlow_r, cmc.batlowS]
+        names = [
+            'viridis',
+            'viridis_r',
+            'plasma',
+            'plasma_r',
+            'batlow',
+            'batlow_r',
+            'batlowS',
+        ]
+        cmaps = [
+            matplotlib.cm.viridis,
+            matplotlib.cm.viridis_r,
+            matplotlib.cm.plasma,
+            matplotlib.cm.plasma_r,
+            cmc.batlow,
+            cmc.batlow_r,
+            cmc.batlowS,
+        ]
 
         for name, cmap in zip(names, cmaps):
             colours[name] = self._cmap_colours(months, cmap)

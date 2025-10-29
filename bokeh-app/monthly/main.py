@@ -15,18 +15,24 @@ app_root = os.getenv('APP_ROOT')
 
 
 def visualisation():
-    pn.extension(loading_spinner='dots', loading_color='#696969', notifications=True)
+    pn.extension(
+        loading_spinner='dots', loading_color='#696969', notifications=True
+    )
 
-    plot_type_selector = pn.widgets.Select(name='Plot type:',
-                                           options={'Absolute values': 'abs', 'Anomalies': 'anom'},
-                                           value='abs',
-                                           sizing_mode='stretch_width')
+    plot_type_selector = pn.widgets.Select(
+        name='Plot type:',
+        options={'Absolute values': 'abs', 'Anomalies': 'anom'},
+        value='abs',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(plot_type_selector, {'value': 'type'})
 
-    index_selector = pn.widgets.Select(name='Index:',
-                                       options={'Sea Ice Extent': 'sie', 'Sea Ice Area': 'sia'},
-                                       value='sie',
-                                       sizing_mode='stretch_width')
+    index_selector = pn.widgets.Select(
+        name='Index:',
+        options={'Sea Ice Extent': 'sie', 'Sea Ice Area': 'sia'},
+        value='sie',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(index_selector, {'value': 'index'})
 
     area_groups = {
@@ -69,19 +75,23 @@ def visualisation():
             'Weddell Sea': 'wedd',
             'Weddell Sea (RH)': 'wedd-rh',
             'Western Pacific Ocean': 'wpac',
-        }
+        },
     }
 
-    area_selector = pn.widgets.Select(name='Area:',
-                                      groups=area_groups,
-                                      value='nh',
-                                      sizing_mode='stretch_width')
+    area_selector = pn.widgets.Select(
+        name='Area:',
+        groups=area_groups,
+        value='nh',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(area_selector, {'value': 'area'})
 
-    reference_period_selector = pn.widgets.Select(name='Reference period (of anomalies and relative trends):',
-                                                  options=['1981-2010', '1991-2020'],
-                                                  value='1981-2010',
-                                                  sizing_mode='stretch_width')
+    reference_period_selector = pn.widgets.Select(
+        name='Reference period (of anomalies and relative trends):',
+        options=['1981-2010', '1991-2020'],
+        value='1981-2010',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(reference_period_selector, {'value': 'ref'})
 
     color_groups = {
@@ -97,42 +107,73 @@ def visualisation():
             'BatlowS': 'batlowS',
             '8 repeating colours': 'cyclic_8',
             '17 repeating colours': 'cyclic_17',
-        }
+        },
     }
 
-    cmap_selector = pn.widgets.Select(name='Colour map:',
-                                      groups=color_groups,
-                                      value='viridis',
-                                      sizing_mode='stretch_width')
+    cmap_selector = pn.widgets.Select(
+        name='Colour map:',
+        groups=color_groups,
+        value='viridis',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(cmap_selector, {'value': 'col'})
 
-    trend_selector = pn.widgets.Select(name='Trend line:',
-                                       options={'Full': 'full', 'Decadal': 'decadal'},
-                                       value='full',
-                                       sizing_mode='stretch_width')
+    trend_selector = pn.widgets.Select(
+        name='Trend line:',
+        options={'Full': 'full', 'Decadal': 'decadal'},
+        value='full',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(trend_selector, {'value': 'trend'})
 
-    grid_selector = pn.widgets.Select(name='Plot grid:', options={'On': 'on', 'Off': 'off'}, value='on',
-                                      sizing_mode='stretch_width')
+    grid_selector = pn.widgets.Select(
+        name='Plot grid:',
+        options={'On': 'on', 'Off': 'off'},
+        value='on',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(grid_selector, {'value': 'grid'})
 
-    data = VisDataMonthly(plot_type_selector.value, index_selector.value, area_selector.value,
-                          reference_period_selector.value, cmap_selector.value, False)
+    data = VisDataMonthly(
+        plot_type_selector.value,
+        index_selector.value,
+        area_selector.value,
+        reference_period_selector.value,
+        cmap_selector.value,
+        False,
+    )
 
-    title, ylabel, info_text = monthly_attrs(plot_type_selector.value, index_selector.value, area_selector.value,
-                                             data.get_last_month())
+    title, ylabel, info_text = monthly_attrs(
+        plot_type_selector.value,
+        index_selector.value,
+        area_selector.value,
+        data.get_last_month(),
+    )
 
     plot = figure(title=title, tools='pan, wheel_zoom, box_zoom, save, reset')
     plot.sizing_mode = 'stretch_both'
     plot.xaxis.axis_label = 'Year'
     plot.yaxis.axis_label = ylabel
 
-    info_label = Label(x=5, y=5, x_units='screen', y_units='screen', text=info_text, text_font_size='12px',
-                       text_color='black')
+    info_label = Label(
+        x=5,
+        y=5,
+        x_units='screen',
+        y_units='screen',
+        text=info_text,
+        text_font_size='12px',
+        text_color='black',
+    )
     plot.add_layout(info_label)
 
     legend_collection = []
-    all_months_glyph = plot.line(x='year', y='value', source=data.cds_all, line_width=1.5, line_color='grey')
+    all_months_glyph = plot.line(
+        x='year',
+        y='value',
+        source=data.cds_all,
+        line_width=1.5,
+        line_color='grey',
+    )
     all_months_glyph.visible = False
     legend_collection.append(('Monthly', [all_months_glyph]))
 
@@ -143,41 +184,66 @@ def visualisation():
     trend_glyphs = []
     dec_trend_glyphs = []
     for month in range(1, 13):
-        line_glyph = plot.line(x='x',
-                               y='value',
-                               source=data.cds_months[month],
-                               line_width=2,
-                               color=data.colours[month])
+        line_glyph = plot.line(
+            x='x',
+            y='value',
+            source=data.cds_months[month],
+            line_width=2,
+            color=data.colours[month],
+        )
 
         line_glyphs.append(line_glyph)
 
-        circle_glyph = plot.scatter(x='x',
-                                    y='value',
-                                    source=data.cds_months[month],
-                                    size=10,
-                                    line_width=2,
-                                    color='colour')
+        circle_glyph = plot.scatter(
+            x='x',
+            y='value',
+            source=data.cds_months[month],
+            size=10,
+            line_width=2,
+            color='colour',
+        )
 
         circle_glyphs.append(circle_glyph)
 
-        trend_glyph = plot.line(x='year', y='value', source=data.cds_full_trends[month], line_width=3,
-                                color=data.colours[month])
+        trend_glyph = plot.line(
+            x='year',
+            y='value',
+            source=data.cds_full_trends[month],
+            line_width=3,
+            color=data.colours[month],
+        )
         trend_glyphs.append(trend_glyph)
 
         dec_trend_glyphs_ = []
         for dec, cds in data.cds_dec_trends[month].items():
-            dec_trend_glyph = plot.line(x='year', y='value', source=cds, line_width=3, color=data.colours[month])
+            dec_trend_glyph = plot.line(
+                x='year',
+                y='value',
+                source=cds,
+                line_width=3,
+                color=data.colours[month],
+            )
             dec_trend_glyphs_.append(dec_trend_glyph)
 
         dec_trend_glyphs.append(dec_trend_glyphs_)
 
         if trend_selector.value == 'full':
-            legend_collection.append((calendar.month_name[month], [line_glyph, circle_glyph, trend_glyph]))
+            legend_collection.append(
+                (
+                    calendar.month_name[month],
+                    [line_glyph, circle_glyph, trend_glyph],
+                )
+            )
             if month == current_month:
                 for dec_glyph in dec_trend_glyphs_:
                     dec_glyph.visible = False
         elif trend_selector.value == 'decadal':
-            legend_collection.append((calendar.month_name[month], [line_glyph, circle_glyph] + dec_trend_glyphs_))
+            legend_collection.append(
+                (
+                    calendar.month_name[month],
+                    [line_glyph, circle_glyph] + dec_trend_glyphs_,
+                )
+            )
             if month == current_month:
                 trend_glyph.visible = False
 
@@ -194,14 +260,17 @@ def visualisation():
     plot.add_layout(legend, 'right')
     plot.legend.click_policy = 'hide'
 
-    # Function for custom formatting of rank values. If decimal is zero don't show it, otherwise show only one decimal.
-    rank_custom = CustomJSHover(code="""
+    # Function for custom formatting of rank values. If decimal is zero don't
+    # show it, otherwise show only one decimal.
+    rank_custom = CustomJSHover(
+        code="""
         if (Number.isInteger(value)) {
           return value.toFixed();
         } else {
           return value.toFixed(1);
         }
-        """)
+        """
+    )
 
     tooltips = """
         <div>
@@ -222,15 +291,25 @@ def visualisation():
         """
 
     if plot_type_selector.value == 'abs':
-        circle_ht = HoverTool(renderers=circle_glyphs, tooltips=tooltips, formatters={'@rank': rank_custom},
-                              visible=False)
+        circle_ht = HoverTool(
+            renderers=circle_glyphs,
+            tooltips=tooltips,
+            formatters={'@rank': rank_custom},
+            visible=False,
+        )
     else:
         tt = tooltips.replace('0.000', '+0.000')
-        circle_ht = HoverTool(renderers=circle_glyphs, tooltips=tt, formatters={'@rank': rank_custom}, visible=False)
+        circle_ht = HoverTool(
+            renderers=circle_glyphs,
+            tooltips=tt,
+            formatters={'@rank': rank_custom},
+            visible=False,
+        )
 
     plot.add_tools(circle_ht)
 
-    # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
+    # Add a hovertool to display the absolute and relative trends for a given
+    # month together with the reference period.
     tooltips_abs = """
         <div>
             <div>
@@ -268,49 +347,77 @@ def visualisation():
         """
 
     if plot_type_selector.value == 'abs':
-        trend_ht = HoverTool(renderers=trend_glyphs, tooltips=tooltips_abs, visible=False)
+        trend_ht = HoverTool(
+            renderers=trend_glyphs, tooltips=tooltips_abs, visible=False
+        )
     else:
-        trend_ht = HoverTool(renderers=trend_glyphs, tooltips=tooltips_anom, visible=False)
+        trend_ht = HoverTool(
+            renderers=trend_glyphs, tooltips=tooltips_anom, visible=False
+        )
 
     plot.add_tools(trend_ht)
 
-    # Add a hovertool to display the absolute and relative trends for a given month together with the reference period.
+    # Add a hovertool to display the absolute and relative trends for a given
+    # month together with the reference period.
     dec_trend_glyphs_flat = sum(dec_trend_glyphs, [])
 
     if plot_type_selector.value == 'abs':
         tt = tooltips_abs.replace('@month', '@month (@decade)')
-        dec_trend_ht = HoverTool(renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False)
+        dec_trend_ht = HoverTool(
+            renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False
+        )
     else:
         tt = tooltips_anom.replace('@month', '@month (@decade)')
-        dec_trend_ht = HoverTool(renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False)
+        dec_trend_ht = HoverTool(
+            renderers=dec_trend_glyphs_flat, tooltips=tt, visible=False
+        )
 
     plot.add_tools(dec_trend_ht)
 
     # Use a grid layout.
     gspec = pn.GridSpec(sizing_mode='stretch_both')
 
-    inputs = pn.Column(plot_type_selector,
-                       index_selector,
-                       area_selector,
-                       reference_period_selector,
-                       cmap_selector,
-                       trend_selector,
-                       grid_selector)
+    inputs = pn.Column(
+        plot_type_selector,
+        index_selector,
+        area_selector,
+        reference_period_selector,
+        cmap_selector,
+        trend_selector,
+        grid_selector,
+    )
 
     def update_data(event):
         with pn.param.set_values(gspec, loading=True):
             try:
                 if all_months_glyph.visible:
-                    data.update_data(plot_type_selector.value, index_selector.value, area_selector.value,
-                                     reference_period_selector.value, True)
+                    data.update_data(
+                        plot_type_selector.value,
+                        index_selector.value,
+                        area_selector.value,
+                        reference_period_selector.value,
+                        True,
+                    )
                 else:
-                    data.update_data(plot_type_selector.value, index_selector.value, area_selector.value,
-                                     reference_period_selector.value, False)
+                    data.update_data(
+                        plot_type_selector.value,
+                        index_selector.value,
+                        area_selector.value,
+                        reference_period_selector.value,
+                        False,
+                    )
             except OSError:
-                pn.state.notifications.error(f'Unable to load data! Please try again later.', duration=5000)
+                pn.state.notifications.error(
+                    'Unable to load data! Please try again later.',
+                    duration=5000,
+                )
             else:
-                title, ylabel, info_text = monthly_attrs(plot_type_selector.value, index_selector.value,
-                                                         area_selector.value, data.get_last_month())
+                title, ylabel, info_text = monthly_attrs(
+                    plot_type_selector.value,
+                    index_selector.value,
+                    area_selector.value,
+                    data.get_last_month(),
+                )
                 plot.title.text = title
                 plot.yaxis.axis_label = ylabel
                 info_label.text = info_text
@@ -318,17 +425,25 @@ def visualisation():
                 if plot_type_selector.value == 'abs':
                     circle_ht.tooltips = tooltips
                     trend_ht.tooltips = tooltips_abs
-                    dec_trend_ht.tooltips = tooltips_abs.replace('@month', '@month (@decade)')
+                    dec_trend_ht.tooltips = tooltips_abs.replace(
+                        '@month', '@month (@decade)'
+                    )
                 else:
                     circle_ht.tooltips = tooltips.replace('0.000', '+0.000')
                     trend_ht.tooltips = tooltips_anom
-                    dec_trend_ht.tooltips = tooltips_anom.replace('@month', '@month (@decade)')
+                    dec_trend_ht.tooltips = tooltips_anom.replace(
+                        '@month', '@month (@decade)'
+                    )
 
     def update_color_map(event):
         with pn.param.set_values(gspec, loading=True):
             data.update_colour(cmap_selector.value)
-            for line_glyph, trend_glyph, dec_trend_glyph, colour in zip(line_glyphs, trend_glyphs, dec_trend_glyphs,
-                                                                        data.colours.values()):
+            for line_glyph, trend_glyph, dec_trend_glyph, colour in zip(
+                line_glyphs,
+                trend_glyphs,
+                dec_trend_glyphs,
+                data.colours.values(),
+            ):
                 line_glyph.glyph.line_color = colour
                 trend_glyph.glyph.line_color = colour
 
@@ -341,7 +456,16 @@ def visualisation():
 
             if trend_selector.value == 'full':
                 for i, month in enumerate(calendar.month_name[1:]):
-                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i], trend_glyphs[i]]))
+                    legend_collection.append(
+                        (
+                            month,
+                            [
+                                line_glyphs[i],
+                                circle_glyphs[i],
+                                trend_glyphs[i],
+                            ],
+                        )
+                    )
 
                     if dec_trend_glyphs[i][0].visible:
                         for one_decade_trend_line_glyph in dec_trend_glyphs[i]:
@@ -352,7 +476,13 @@ def visualisation():
 
             elif trend_selector.value == 'decadal':
                 for i, month in enumerate(calendar.month_name[1:]):
-                    legend_collection.append((month, [line_glyphs[i], circle_glyphs[i]] + dec_trend_glyphs[i]))
+                    legend_collection.append(
+                        (
+                            month,
+                            [line_glyphs[i], circle_glyphs[i]]
+                            + dec_trend_glyphs[i],
+                        )
+                    )
 
                     if trend_glyphs[i].visible:
                         trend_glyphs[i].visible = False
@@ -369,7 +499,8 @@ def visualisation():
                 plot.grid.visible = False
 
     def linking_callback(attr, old, new):
-        """Create a wrapper function to use Bokeh callback functionality with a Panel callback function."""
+        """Create a wrapper function to use Bokeh callback functionality with
+        a Panel callback function."""
         update_data(None)
 
     # Run callbacks when widget values change.
@@ -381,17 +512,22 @@ def visualisation():
     trend_selector.param.watch(update_legend, 'value')
     grid_selector.param.watch(update_grid, 'value')
 
-    # Update the plot so that the monthly data points and trend lines are plotted with a monthly offset whenever the
-    # line that runs through all data points is visible.
+    # Update the plot so that the monthly data points and trend lines are
+    # plotted with a monthly offset whenever the line that runs through all
+    # data points is visible.
     all_months_glyph.on_change('visible', linking_callback)
 
-    # Divide the layout into 5 rows and 5 columns. The plot uses 5 rows and 4 columns,
-    # the widgets get the last column and first 3 rows, and the logo gets the last 2 rows.
+    # Divide the layout into 5 rows and 5 columns. The plot uses 5 rows and 4
+    # columns, the widgets get the last column and first 3 rows, and the logo
+    # gets the last 2 rows.
     gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
     gspec[0:3, 4] = inputs
-    gspec[3:5, 4] = pn.pane.PNG(f'{app_root}/assets/logo.png', sizing_mode='scale_both')
+    gspec[3:5, 4] = pn.pane.PNG(
+        f'{app_root}/assets/logo.png', sizing_mode='scale_both'
+    )
 
-    # Update grid when rendering has finished in order to read URL parameter if it exists.
+    # Update grid when rendering has finished in order to read URL parameter
+    # if it exists.
     curdoc().on_event(DocumentReady, update_grid)
 
     gspec.servable()
@@ -400,7 +536,12 @@ def visualisation():
 try:
     visualisation()
 except OSError:
-    styles = {'background-color': '#F6F6F6', 'border': '2px solid black', 'border-radius': '5px', 'padding': '10px'}
+    styles = {
+        'background-color': '#F6F6F6',
+        'border': '2px solid black',
+        'border-radius': '5px',
+        'padding': '10px',
+    }
 
     pane = pn.pane.HTML("""
         <!DOCTYPE html>

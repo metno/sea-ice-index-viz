@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 
 from toolkit import VisDataMonthly
-from plot_tools import monthly_attrs
+from plot_tools import AreaNames, monthly_attrs
 
 # Get the root directory of the app.
 app_root = os.getenv('APP_ROOT')
@@ -35,48 +35,7 @@ def visualisation():
     )
     pn.state.location.sync(index_selector, {'value': 'index'})
 
-    area_groups = {
-        'Global': {
-            'Global': 'glb',
-            'Northern Hemisphere': 'nh',
-            'Southern Hemisphere': 'sh',
-        },
-        'Northern Hemisphere Regions': {
-            'Baffin Bay and Labrador Seas': 'baffin',
-            'Baltic Sea': 'baltic',
-            'Barents Sea': 'barents',
-            'Beaufort Sea': 'beaufort',
-            'Bering Sea': 'bering',
-            'Bohai and Yellow Seas': 'bohai',
-            'Canadian Archipelago': 'canarch',
-            'Central Arctic': 'centralarc',
-            'Chukchi Sea': 'chukchi',
-            'East Greenland Sea': 'greenland',
-            'East Siberian Sea': 'ess',
-            'Gulf of Alaska': 'alaska',
-            'Gulf of St. Lawrence': 'lawrence',
-            'Hudson Bay': 'hudson',
-            'Kara Sea': 'kara',
-            'Laptev Sea': 'laptev',
-            'Sea of Japan': 'japan',
-            'Sea of Okhotsk': 'okhotsk',
-            'Svalbard': 'sval',
-        },
-        'Southern Hemisphere Regions': {
-            'Amundsen-Bellingshausen Seas': 'bell',
-            'Amundsen-Bellingshausen Seas (RH)': 'bell-rh',
-            'Dronning Maud Land': 'drml',
-            'East Antarctica (RH)': 'ea-rh',
-            'Indian Ocean': 'indi',
-            'King Haakon VII Sea (RH)': 'khs-rh',
-            'Ross Sea': 'ross',
-            'Ross-Amundsen Seas': 'ross-rh',
-            'Troll Station': 'trol',
-            'Weddell Sea': 'wedd',
-            'Weddell Sea (RH)': 'wedd-rh',
-            'Western Pacific Ocean': 'wpac',
-        },
-    }
+    area_groups = AreaNames().get_area_groups()
 
     area_selector = pn.widgets.Select(
         name='Area:',

@@ -3,46 +3,75 @@ from bokeh.plotting import figure
 from xarray import DataArray
 
 
+class AreaNames:
+    def __init__(self):
+        self.glb_areas = {
+            'glb': 'Global',
+            'nh': 'Northern Hemisphere',
+            'sh': 'Southern Hemisphere',
+        }
+
+        self.nh_areas = {
+            'baffin': 'Baffin Bay and Labrador Seas',
+            'baltic': 'Baltic Sea',
+            'barents': 'Barents Sea',
+            'beaufort': 'Beaufort Sea',
+            'bering': 'Bering Sea',
+            'bohai': 'Bohai and Yellow Seas',
+            'canarch': 'Canadian Archipelago',
+            'centralarc': 'Central Arctic',
+            'chukchi': 'Chukchi Sea',
+            'greenland': 'East Greenland Sea',
+            'ess': 'East Siberian Sea',
+            'alaska': 'Gulf of Alaska',
+            'lawrence': 'Gulf of St. Lawrence',
+            'hudson': 'Hudson Bay',
+            'kara': 'Kara Sea',
+            'laptev': 'Laptev Sea',
+            'japan': 'Sea of Japan',
+            'okhotsk': 'Sea of Okhotsk',
+            'sval': 'Svalbard',
+        }
+
+        self.sh_areas = {
+            'bell': 'Amundsen-Bellingshausen Seas',
+            'bell-rh': 'Amundsen-Bellingshausen Seas (RH)',
+            'drml': 'Dronning Maud Land',
+            'ea-rh': 'East Antarctica (RH)',
+            'indi': 'Indian Ocean',
+            'khs-rh': 'King Haakon VII Sea (RH)',
+            'ross': 'Ross Sea',
+            'ross-rh': 'Ross-Amundsen Seas',
+            'trol': 'Troll Station',
+            'wedd': 'Weddell Sea',
+            'wedd-rh': 'Weddell Sea (RH)',
+            'wpac': 'Western Pacific Ocean',
+        }
+
+    def get_area_names(self):
+        area_names = self.glb_areas.copy()
+        area_names.update(self.nh_areas)
+        area_names.update(self.sh_areas)
+
+        return area_names
+
+    def get_area_groups(self):
+        glb = {value: key for key, value in self.glb_areas.items()}
+        nh = {value: key for key, value in self.nh_areas.items()}
+        sh = {value: key for key, value in self.sh_areas.items()}
+
+        area_groups = {'Global': glb,
+                       'Northern Hemisphere Regions': nh,
+                       'Southern Hemisphere Regions': sh}
+
+        return area_groups
+
+
 def monthly_attrs(
     anomaly: str, index: str, area: str, last_month: str
 ) -> tuple[str, str, str]:
     index_name = {'sie': 'Sea Ice Extent', 'sia': 'Sea Ice Area'}
-    area_name = {
-        'glb': 'Global',
-        'nh': 'Northern Hemisphere',
-        'sh': 'Southern Hemisphere',
-        'baffin': 'Baffin Bay and Labrador Seas',
-        'baltic': 'Baltic Sea',
-        'barents': 'Barents Sea',
-        'beaufort': 'Beaufort Sea',
-        'bering': 'Bering Sea',
-        'bohai': 'Bohai and Yellow Seas',
-        'canarch': 'Canadian Archipelago',
-        'centralarc': 'Central Arctic',
-        'chukchi': 'Chukchi Sea',
-        'greenland': 'East Greenland Sea',
-        'ess': 'East Siberian Sea',
-        'alaska': 'Gulf of Alaska',
-        'lawrence': 'Gulf of St. Lawrence',
-        'hudson': 'Hudson Bay',
-        'kara': 'Kara Sea',
-        'laptev': 'Laptev Sea',
-        'japan': 'Sea of Japan',
-        'okhotsk': 'Sea of Okhotsk',
-        'sval': 'Svalbard',
-        'bell': 'Amundsen-Bellingshausen Sea',
-        'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
-        'drml': 'Dronning Maud Land',
-        'ea-rh': 'East Antarctica (RH)',
-        'indi': 'Indian Ocean',
-        'khs-rh': 'King Haakon VII Sea (RH)',
-        'ross': 'Ross Sea',
-        'ross-rh': 'Ross Sea (RH)',
-        'trol': 'Troll Station',
-        'wedd': 'Weddell Sea',
-        'wedd-rh': 'Weddell Sea (RH)',
-        'wpac': 'Western Pacific Ocean',
-    }
+    area_name = AreaNames().get_area_names()
 
     if anomaly == 'anom':
         title = (
@@ -78,42 +107,7 @@ def daily_attrs(
     last_year: int,
 ):
     index_name = {'sie': 'Sea Ice Extent', 'sia': 'Sea Ice Area'}
-    area_name = {
-        'glb': 'Global',
-        'nh': 'Northern Hemisphere',
-        'sh': 'Southern Hemisphere',
-        'baffin': 'Baffin Bay and Labrador Seas',
-        'baltic': 'Baltic Sea',
-        'barents': 'Barents Sea',
-        'beaufort': 'Beaufort Sea',
-        'bering': 'Bering Sea',
-        'bohai': 'Bohai and Yellow Seas',
-        'canarch': 'Canadian Archipelago',
-        'centralarc': 'Central Arctic',
-        'chukchi': 'Chukchi Sea',
-        'greenland': 'East Greenland Sea',
-        'ess': 'East Siberian Sea',
-        'alaska': 'Gulf of Alaska',
-        'lawrence': 'Gulf of St. Lawrence',
-        'hudson': 'Hudson Bay',
-        'kara': 'Kara Sea',
-        'laptev': 'Laptev Sea',
-        'japan': 'Sea of Japan',
-        'okhotsk': 'Sea of Okhotsk',
-        'sval': 'Svalbard',
-        'bell': 'Amundsen-Bellingshausen Sea',
-        'bell-rh': 'Amundsen-Bellingshausen Sea (RH)',
-        'drml': 'Dronning Maud Land',
-        'ea-rh': 'East Antarctica (RH)',
-        'indi': 'Indian Ocean',
-        'khs-rh': 'King Haakon VII Sea (RH)',
-        'ross': 'Ross Sea',
-        'ross-rh': 'Ross Sea (RH)',
-        'trol': 'Troll Station',
-        'wedd': 'Weddell Sea',
-        'wedd-rh': 'Weddell Sea (RH)',
-        'wpac': 'Western Pacific Ocean',
-    }
+    area_name = AreaNames().get_area_names()
 
     if anomaly == 'abs':
         title = f'Daily {index_name[index]} v3.0, {area_name[area]}'

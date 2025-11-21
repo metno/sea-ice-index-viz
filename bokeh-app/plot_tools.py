@@ -12,7 +12,7 @@ class AreaNames:
         }
 
         self.nh_areas = {
-            'baffin': 'Baffin Bay and Labrador Seas',
+            'baffin': 'Baffin Bay and Labrador Sea',
             'baltic': 'Baltic Sea',
             'barents': 'Barents Sea',
             'beaufort': 'Beaufort Sea',

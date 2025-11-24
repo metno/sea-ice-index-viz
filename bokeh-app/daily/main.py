@@ -334,9 +334,9 @@ def visualisation():
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
     legend_list.append(('Forecast', ensemble_members))
 
-    n = 23
+    n = 30
     legend_split = [
-        legend_list[i : i + n] for i in range(0, len(legend_list), n)
+        legend_list[i: i + n] for i in range(0, len(legend_list), n)
     ]
 
     for sublist in legend_split:

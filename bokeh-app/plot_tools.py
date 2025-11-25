@@ -23,7 +23,6 @@ class AreaNames:
             'chukchi': 'Chukchi Sea',
             'greenland': 'East Greenland Sea',
             'ess': 'East Siberian Sea',
-            'alaska': 'Gulf of Alaska',
             'lawrence': 'Gulf of St. Lawrence',
             'hudson': 'Hudson Bay',
             'kara': 'Kara Sea',

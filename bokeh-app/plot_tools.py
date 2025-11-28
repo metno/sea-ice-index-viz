@@ -74,7 +74,7 @@ def monthly_attrs(
 
     if anomaly == 'anom':
         title = (
-            f'Monthly Mean {index_name[index]} Anomaly v3.0, {area_name[area]}'
+            f'Monthly {index_name[index]} Anomaly, {area_name[area]}'
         )
         yaxis = f'{index_name[index]} Anomaly [million km²]'
         label = (
@@ -83,7 +83,7 @@ def monthly_attrs(
             f'Last data point: {last_month}'
         )
     else:
-        title = f'Monthly Mean {index_name[index]} v3.0, {area_name[area]}'
+        title = f'Monthly {index_name[index]}, {area_name[area]}'
         yaxis = f'{index_name[index]} [million km²]'
         label = (
             'OSI SAF Sea Ice Index v3\n'
@@ -109,10 +109,10 @@ def daily_attrs(
     area_name = AreaNames().get_area_names()
 
     if anomaly == 'abs':
-        title = f'Daily {index_name[index]} v3.0, {area_name[area]}'
+        title = f'Daily {index_name[index]}, {area_name[area]}'
         ylabel = f'{index_name[index]} [million km²]'
     else:
-        title = f'Daily {index_name[index]} Anomaly v3.0, {area_name[area]}'
+        title = f'Daily {index_name[index]} Anomaly, {area_name[area]}'
         ylabel = f'{index_name[index]} Anomaly [million km²]'
 
     if anomaly == 'abs':

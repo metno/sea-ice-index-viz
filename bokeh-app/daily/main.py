@@ -356,7 +356,7 @@ try:
     # elements that can be inside one sublist. This number was determined with basic testing on one specific
     # computer. This is an issue because other clients can have computers with a different screen resolution which
     # can fit more legends. Keep this solution for now, but check if there's a better way to solve this.
-    n = 23
+    n = 30
     legend_split = [legend_list[i:i+n] for i in range(0, len(legend_list), n)]
 
     for sublist in legend_split:

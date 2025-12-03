@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 class VisDataDaily:
     def __init__(
-        self, anomaly: str, index: str, area: str, ref_period: str, cmap: str
+        self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, cmap: str
     ) -> None:
         self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
             anomaly, index, area, ref_period
@@ -34,6 +34,10 @@ class VisDataDaily:
         years = np.unique(self.ds_daily.time.dt.year.values).astype(str)
 
         da = self.ds_daily[index].convert_calendar('all_leap')
+
+        if rolling == 'on':
+            da = da.rolling(time=5, center=True).mean()
+
         self.cds_yearly = {}
         for year in years:
             subset = da.sel(time=year)
@@ -60,7 +64,7 @@ class VisDataDaily:
             self.cds_forecasts[i] = ColumnDataSource(self._forecast(da))
 
     def update_data(
-        self, anomaly: str, index: str, area: str, ref_period: str, cmap: str
+        self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, cmap: str
     ) -> None:
         self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
             anomaly, index, area, ref_period
@@ -83,6 +87,9 @@ class VisDataDaily:
         years = np.unique(self.ds_daily.time.dt.year.values).astype(str)
 
         da = self.ds_daily[index].convert_calendar('all_leap')
+        if rolling == 'on':
+            da = da.rolling(time=5, center=True).mean()
+
         for year in years:
             subset = da.sel(time=year)
             rank = self.ds_daily.rank_per_doy.sel(time=year)

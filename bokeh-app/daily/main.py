@@ -120,8 +120,15 @@ def visualisation():
     )
     pn.state.location.sync(grid_selector, {'value': 'grid'})
 
+    rolling_selector = pn.widgets.Select(name='5-day rolling mean:',
+                                         options={'On': 'on', 'Off': 'off'},
+                                         value='off',
+                                         sizing_mode='stretch_width')
+    pn.state.location.sync(rolling_selector, {'value': 'rolling'})
+
     data = VisDataDaily(
         plot_type_selector.value,
+        rolling_selector.value,
         index_selector.value,
         area_selector.value,
         reference_period_selector.value,
@@ -383,6 +390,7 @@ def visualisation():
             try:
                 data.update_data(
                     plot_type_selector.value,
+                    rolling_selector.value,
                     index_selector.value,
                     area_selector.value,
                     reference_period_selector.value,
@@ -575,6 +583,7 @@ def visualisation():
         zoom_shortcuts,
         cmap_selector,
         grid_selector,
+        rolling_selector,
     )
 
     gspec = pn.GridSpec(sizing_mode='stretch_both')
@@ -594,6 +603,7 @@ def visualisation():
     zoom_shortcuts.param.watch(update_zoom, 'clicked', onlychanged=False)
     cmap_selector.param.watch(update_colour, 'value')
     grid_selector.param.watch(update_grid, 'value')
+    rolling_selector.param.watch(update_data, 'value')
 
     def read_params(event):
         # Read plot shortcut URL parameter if there is one and update the

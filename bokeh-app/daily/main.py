@@ -135,8 +135,8 @@ def visualisation():
         cmap_selector.value,
     )
 
-    first_year = int(data.ds_daily.time[0].dt.year.values)
-    last_year = int(data.ds_daily.time[-1].dt.year.values)
+    min_max_first_year = 1979
+    min_max_last_year = int(data.ds_daily.time[-1].dt.year.values) - 1
     title, ylabel, info_text = daily_attrs(
         plot_type_selector.value,
         index_selector.value,
@@ -145,8 +145,8 @@ def visualisation():
         data.get_last_day(),
         True,
         True,
-        first_year,
-        last_year,
+        min_max_first_year,
+        min_max_last_year,
     )
 
     plot = figure(title=title, tools='pan, wheel_zoom, box_zoom, save')
@@ -365,8 +365,7 @@ def visualisation():
     plot.add_tools(tooltips.forecast)
 
     def update_attrs(attr, old, new):
-        first_year = int(data.ds_daily.time[0].dt.year.values)
-        last_year = int(data.ds_daily.time[-1].dt.year.values)
+        min_max_last_year = int(data.ds_daily.time[-1].dt.year.values) - 1
         title, ylabel, info_text = daily_attrs(
             plot_type_selector.value,
             index_selector.value,
@@ -375,8 +374,8 @@ def visualisation():
             data.get_last_day(),
             p10_90.visible,
             min_line.visible,
-            first_year,
-            last_year,
+            min_max_first_year,
+            min_max_last_year,
         )
         plot.title.text = title
         plot.yaxis.axis_label = ylabel

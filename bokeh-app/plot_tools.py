@@ -123,12 +123,12 @@ def daily_attrs(
     if pct_vis:
         label += f'Median and percentiles (25-75% and 10-90%) for {ref_per}'
         if minmax_vis:
-            label += f', min/max for {first_year}-{last_year - 1}\n'
+            label += f', min/max for {first_year}-{last_year}\n'
         else:
             label += '\n'
     else:
         if minmax_vis:
-            label += f'Min/max for {first_year}-{last_year - 1}\n'
+            label += f'Min/max for {first_year}-{last_year}\n'
 
     label += (
         f'OSI SAF Sea Ice Index v3\n'

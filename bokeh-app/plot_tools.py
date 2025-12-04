@@ -367,3 +367,7 @@ def max_zoom(plot: figure, da: DataArray, offset: float, anom: str) -> None:
     plot.x_range.start = doy_max - 30 if doy_max - 30 > 1 else 1
     plot.x_range.end = doy_max + 30 if doy_max + 30 < 366 else 366
     set_zoom_yrange(plot, da, offset, anom)
+
+
+def missing_data_page() -> str:
+    return '<h1>Unable to load data! Please try again later.</h1>'

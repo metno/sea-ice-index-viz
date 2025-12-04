@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 
 from toolkit import VisDataMonthly
-from plot_tools import AreaNames, monthly_attrs
+from plot_tools import AreaNames, monthly_attrs, missing_data_page
 
 # Get the root directory of the app.
 app_root = os.getenv('APP_ROOT')
@@ -495,27 +495,6 @@ def visualisation():
 try:
     visualisation()
 except OSError:
-    styles = {
-        'background-color': '#F6F6F6',
-        'border': '2px solid black',
-        'border-radius': '5px',
-        'padding': '10px',
-    }
-
-    pane = pn.pane.HTML("""
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta http-equiv="X-UA-Compatible" content="ie=edge">
-            <title>HTML 5 Boilerplate</title>
-            <link rel="stylesheet" href="style.css">
-          </head>
-          <body>
-            <h1>Unable to load data! Please try again later.</h1>
-          </body>
-        </html>
-        """)
+    pane = pn.pane.HTML(missing_data_page())
 
     pane.servable()

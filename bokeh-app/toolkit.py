@@ -157,7 +157,7 @@ class VisDataDaily:
 
         dir = (
             'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-            'SII_forecast'
+            'SII_forecast/final_topaz5'
         )
         try:
             ds_forecast = xr.open_dataset(
@@ -335,11 +335,27 @@ class VisDataDaily:
         }
 
     def _forecast(self, da: xr.DataArray):
+        doy = da.time.dt.dayofyear.values
+        values = da.values
+        member = np.full(len(da.values), da.member.values)
+        dates = da.time.dt.strftime('%Y-%m-%d').values
+
+        # Check whether dayofyear array contains both 1 and 366 which
+        # indicates that it runs into the next year. We then need to insert
+        # a nan-value in the values array, and placeholder fake values in
+        # the other arrays.
+        if sum(np.isin(doy, [366, 1])) == 2:
+            year_start_index = np.where(doy == 1)[0]
+            doy = np.insert(doy, year_start_index, 367)
+            values = np.insert(values, year_start_index, np.nan)
+            member = np.insert(member, year_start_index, 999)
+            dates = np.insert(dates, year_start_index, 'FAKE')
+
         return {
-            'doy': da.time.dt.dayofyear.values,
-            'value': da.values,
-            'member': np.full(len(da.values), da.member.values),
-            'date': da.time.dt.strftime('%Y-%m-%d').values,
+            'doy': doy,
+            'value': values,
+            'member': member,
+            'date': dates,
         }
 
     def _get_colours(self, years: NDArray) -> dict[str, NDArray[str]]:

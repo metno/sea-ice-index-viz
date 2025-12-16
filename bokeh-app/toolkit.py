@@ -157,7 +157,7 @@ class VisDataDaily:
 
         dir = (
             'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-            'SII_forecast'
+            'SII_forecast/final_topaz5'
         )
         try:
             ds_forecast = xr.open_dataset(

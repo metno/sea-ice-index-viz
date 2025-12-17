@@ -303,18 +303,6 @@ def visualisation():
         visible=False,
     )
 
-    ensemble_members = []
-    for index, cds in data.cds_forecasts.items():
-        forecast = plot.line(
-            x='doy',
-            y='value',
-            source=cds,
-            line_width=2,
-            line_color='black',
-        )
-
-        ensemble_members.append(forecast)
-
     last_year_outline = plot.line(
         x='doy',
         y='value',
@@ -340,7 +328,6 @@ def visualisation():
     legend_list.extend(decades)
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
-    legend_list.append(('Forecast', ensemble_members))
 
     n = 30
     legend_split = [
@@ -358,12 +345,11 @@ def visualisation():
         last_year_outline
     ]
     tooltips = Tooltips(
-        plot_type_selector.value, all_yearly_glyphs, [yearly_min], [yearly_max], ensemble_members
+        plot_type_selector.value, all_yearly_glyphs, [yearly_min], [yearly_max]
     )
     plot.add_tools(tooltips.yearly)
     plot.add_tools(tooltips.min)
     plot.add_tools(tooltips.max)
-    plot.add_tools(tooltips.forecast)
 
     def update_attrs(attr, old, new):
         min_max_last_year = int(data.ds_daily.time[-1].dt.year.values) - 1
@@ -444,9 +430,6 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = False
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = False
-
                 last_year_outline.visible = False
                 last_year_inner.visible = False
 
@@ -466,9 +449,6 @@ def visualisation():
 
                 for year in yearly:
                     year[1][0].visible = True
-
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
 
                 last_year_outline.visible = True
                 last_year_inner.visible = True
@@ -495,9 +475,6 @@ def visualisation():
                 for year in yearly[-5:]:
                     year[1][0].visible = True
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
-
                 last_year_outline.visible = True
                 last_year_inner.visible = True
 
@@ -514,9 +491,6 @@ def visualisation():
 
                 yearly_min.visible = False
                 yearly_max.visible = False
-
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
 
                 last_year_outline.visible = True
                 last_year_inner.visible = True

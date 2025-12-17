@@ -146,7 +146,6 @@ class Tooltips:
         yearly_glyphs: list,
         min_glyphs: list,
         max_glyphs: list,
-        forecast_glyphs: list,
     ) -> None:
         self.yearly = HoverTool(
             renderers=yearly_glyphs,
@@ -164,11 +163,6 @@ class Tooltips:
             renderers=max_glyphs,
             tooltips=self.yr_max_tooltips(self._value_fmt(anom)),
             formatters={'@rank': self._rank_fmt()},
-            visible=False,
-        )
-        self.forecast = HoverTool(
-            renderers=forecast_glyphs,
-            tooltips=self.forecast_tooltips(self._value_fmt(anom)),
             visible=False,
         )
 
@@ -266,26 +260,6 @@ class Tooltips:
         )
 
         return rank_fmt
-
-    def forecast_tooltips(self, fmt: str) -> str:
-        tooltips = f"""
-                <div>
-                    <div>
-                        <span style="font-size: 14px; font-weight: bold;">TOPAZ5 (member @member)</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Date:</span>
-                        <span style="font-size: 12px;">@date</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; font-weight: bold">Index:</span>
-                        <span style="font-size: 12px;">@value{{{fmt}}}</span>
-                        <span style="font-size: 12px;">mill. km<sup>2</sup></span>
-                    </div>
-                </div>
-                """
-
-        return tooltips
 
 
 def set_zoom_yrange(

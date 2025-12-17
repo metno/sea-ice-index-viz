@@ -12,7 +12,7 @@ class VisDataDaily:
     def __init__(
         self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, cmap: str
     ) -> None:
-        self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
+        self.ds_daily, ds_clim, ds_decades = self._download_data(
             anomaly, index, area, ref_period
         )
 
@@ -58,15 +58,10 @@ class VisDataDaily:
             self._year_max(self.ds_daily, cols)
         )
 
-        self.cds_forecasts = {}
-        for i in range(1, 11):
-            da = ds_forecast[index].sel(member=i)
-            self.cds_forecasts[i] = ColumnDataSource(self._forecast(da))
-
     def update_data(
         self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, cmap: str
     ) -> None:
-        self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
+        self.ds_daily, ds_clim, ds_decades = self._download_data(
             anomaly, index, area, ref_period
         )
 
@@ -103,10 +98,6 @@ class VisDataDaily:
         self.cds_yearly_min.data.update(self._year_min(self.ds_daily, cols))
         self.cds_yearly_max.data.update(self._year_max(self.ds_daily, cols))
 
-        for i in range(1, 11):
-            da = ds_forecast[index].sel(member=i)
-            self.cds_forecasts[i].data.update(self._forecast(da))
-
     def update_colour(self, cmap: str) -> None:
         cols = [
             self.colours[cmap][str(year)] for year in self.ds_daily.year.values
@@ -122,7 +113,7 @@ class VisDataDaily:
 
     def _download_data(
         self, anomaly: str, index: str, area: str, ref_period: str
-    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset], xr.Dataset]:
+    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
         dir = ('https://thredds.met.no/thredds/dodsC/metusers/signeaa/'
                'test-data-sii-v3p0')
 
@@ -155,32 +146,12 @@ class VisDataDaily:
 
         ds_clim = ds_clims[ref_period]
 
-        dir = (
-            'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-            'SII_forecast/final_topaz5'
-        )
-        try:
-            ds_forecast = xr.open_dataset(
-                f'{dir}/{index}_{area}.nc', cache=False
-            ).load()
-        except OSError:
-            # Create a fake Dataset when forecast data does not exist for a
-            # given region. This can for example be for regions in the
-            # southern hemisphere.
-            values = np.full((10, 1), np.nan)
-            data_vars = {index: (['member', 'time'], values)}
-            coords = {
-                'member': [i for i in range(1, 11)],
-                'time': [np.datetime64('1970-01-01')],
-            }
-            ds_forecast = xr.Dataset(data_vars=data_vars, coords=coords)
-
         if anomaly == 'anom':
-            ds_daily, ds_clim, ds_decades, ds_forecast = self._get_anomaly(
-                index, ref_period, ds_daily, ds_clim, ds_decades, ds_forecast
+            ds_daily, ds_clim, ds_decades = self._get_anomaly(
+                index, ref_period, ds_daily, ds_clim, ds_decades
             )
 
-        return ds_daily, ds_clim, ds_decades, ds_forecast
+        return ds_daily, ds_clim, ds_decades
 
     def _get_anomaly(
         self,
@@ -189,8 +160,7 @@ class VisDataDaily:
         ds_daily: xr.Dataset,
         ds_clim: xr.Dataset,
         ds_decades: dict[str, xr.Dataset],
-        ds_forecast: xr.Dataset,
-    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset], xr.Dataset]:
+    ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
         start = ref_period[:4]
         end = ref_period[5:]
 
@@ -258,12 +228,7 @@ class VisDataDaily:
         ds_daily['yearly_min_value'].values = year_min
         ds_daily['yearly_max_value'].values = year_max
 
-        doy = ds_forecast.time.dt.dayofyear.values
-        ds_forecast[index].values = (
-            ds_forecast[index].values - mean.sel(dayofyear=doy).values
-        )
-
-        return ds_daily, ds_clim, ds_decades, ds_forecast
+        return ds_daily, ds_clim, ds_decades
 
     def _p10_90(self, ds: xr.Dataset, index: str) -> dict[str, NDArray[float]]:
         return {
@@ -332,30 +297,6 @@ class VisDataDaily:
             'date': ds.yearly_max_date.dt.strftime('%Y-%m-%d').values,
             'rank': ds.yearly_max_rank.values,
             'colour': colours,
-        }
-
-    def _forecast(self, da: xr.DataArray):
-        doy = da.time.dt.dayofyear.values
-        values = da.values
-        member = np.full(len(da.values), da.member.values)
-        dates = da.time.dt.strftime('%Y-%m-%d').values
-
-        # Check whether dayofyear array contains both 1 and 366 which
-        # indicates that it runs into the next year. We then need to insert
-        # a nan-value in the values array, and placeholder fake values in
-        # the other arrays.
-        if sum(np.isin(doy, [366, 1])) == 2:
-            year_start_index = np.where(doy == 1)[0]
-            doy = np.insert(doy, year_start_index, 367)
-            values = np.insert(values, year_start_index, np.nan)
-            member = np.insert(member, year_start_index, 999)
-            dates = np.insert(dates, year_start_index, 'FAKE')
-
-        return {
-            'doy': doy,
-            'value': values,
-            'member': member,
-            'date': dates,
         }
 
     def _get_colours(self, years: NDArray) -> dict[str, NDArray[str]]:

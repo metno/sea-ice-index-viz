@@ -1,7 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.core.properties import value
 from bokeh.events import DocumentReady
-from bokeh.models import Legend, Label, Range1d, AdaptiveTicker
+from bokeh.models import Legend, Label, Range1d, AdaptiveTicker, Paragraph
 from bokeh.io import curdoc
 import panel as pn
 import os
@@ -344,7 +344,7 @@ def visualisation():
 
     n = 30
     legend_split = [
-        legend_list[i: i + n] for i in range(0, len(legend_list), n)
+        legend_list[i : i + n] for i in range(0, len(legend_list), n)
     ]
 
     for sublist in legend_split:
@@ -586,8 +586,14 @@ def visualisation():
         rolling_selector,
     )
 
+    development_label = Paragraph(
+        text='UNDER DEVELOPMENT',
+        styles={'color': '#ff0000', 'font-size': '2em', 'font-weight': 'bold'},
+    )
+    plot_col = pn.Column(development_label, pn.pane.Bokeh(plot))
+
     gspec = pn.GridSpec(sizing_mode='stretch_both')
-    gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
+    gspec[0:5, 0:4] = plot_col
     gspec[0:3, 4] = inputs
     gspec[3:5, 4] = pn.pane.PNG(
         f'{app_root}/assets/logo.png', sizing_mode='scale_both'

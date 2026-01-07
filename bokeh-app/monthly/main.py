@@ -1,5 +1,5 @@
 from bokeh.plotting import figure
-from bokeh.models import Legend, HoverTool, CustomJSHover, Label
+from bokeh.models import Legend, HoverTool, CustomJSHover, Label, Paragraph
 from bokeh.events import DocumentReady
 from bokeh.io import curdoc
 import panel as pn
@@ -476,10 +476,16 @@ def visualisation():
     # data points is visible.
     all_months_glyph.on_change('visible', linking_callback)
 
+    development_label = Paragraph(
+        text='UNDER DEVELOPMENT',
+        styles={'color': '#ff0000', 'font-size': '2em', 'font-weight': 'bold'},
+    )
+    plot_col = pn.Column(development_label, pn.pane.Bokeh(plot))
+
     # Divide the layout into 5 rows and 5 columns. The plot uses 5 rows and 4
     # columns, the widgets get the last column and first 3 rows, and the logo
     # gets the last 2 rows.
-    gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
+    gspec[0:5, 0:4] = plot_col
     gspec[0:3, 4] = inputs
     gspec[3:5, 4] = pn.pane.PNG(
         f'{app_root}/assets/logo.png', sizing_mode='scale_both'

@@ -121,10 +121,12 @@ def visualisation():
     )
     pn.state.location.sync(grid_selector, {'value': 'grid'})
 
-    rolling_selector = pn.widgets.Select(name='5-day rolling mean:',
-                                         options={'On': 'on', 'Off': 'off'},
-                                         value='off',
-                                         sizing_mode='stretch_width')
+    rolling_selector = pn.widgets.Select(
+        name='5-day rolling mean:',
+        options={'On': 'on', 'Off': 'off'},
+        value='off',
+        sizing_mode='stretch_width',
+    )
     pn.state.location.sync(rolling_selector, {'value': 'rolling'})
 
     data = VisDataDaily(
@@ -358,7 +360,11 @@ def visualisation():
         last_year_outline
     ]
     tooltips = Tooltips(
-        plot_type_selector.value, all_yearly_glyphs, [yearly_min], [yearly_max], ensemble_members
+        plot_type_selector.value,
+        all_yearly_glyphs,
+        [yearly_min],
+        [yearly_max],
+        ensemble_members,
     )
     plot.add_tools(tooltips.yearly)
     plot.add_tools(tooltips.min)

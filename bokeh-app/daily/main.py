@@ -329,7 +329,7 @@ def visualisation():
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
 
-    n = 28
+    n = 29
     legend_split = [
         legend_list[i: i + n] for i in range(0, len(legend_list), n)
     ]

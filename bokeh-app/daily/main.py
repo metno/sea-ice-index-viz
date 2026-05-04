@@ -329,7 +329,7 @@ def visualisation():
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
 
-    n = 30
+    n = 28
     legend_split = [
         legend_list[i: i + n] for i in range(0, len(legend_list), n)
     ]
@@ -561,9 +561,9 @@ def visualisation():
     )
 
     gspec = pn.GridSpec(sizing_mode='stretch_both')
-    gspec[0:5, 0:4] = pn.pane.Bokeh(plot)
-    gspec[0:3, 4] = inputs
-    gspec[3:5, 4] = pn.pane.PNG(
+    gspec[0:7, 0:4] = pn.pane.Bokeh(plot)
+    gspec[0:5, 4] = inputs
+    gspec[5:7, 4] = pn.pane.PNG(
         f'{app_root}/assets/logo.png', sizing_mode='scale_both'
     )
 

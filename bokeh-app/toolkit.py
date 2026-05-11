@@ -114,8 +114,7 @@ class VisDataDaily:
     def _download_data(
         self, anomaly: str, index: str, area: str, ref_period: str
     ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
-        dir = ('https://thredds.met.no/thredds/dodsC/metusers/signeaa/'
-               'test-data-sii-v3p0')
+        dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
         path = (f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_'
@@ -130,7 +129,7 @@ class VisDataDaily:
 
         for clim in clim_periods:
             ds = xr.open_dataset(
-                f'{dir}/clim/{area}/{index_translation[index]}_'
+                f'{dir}/tc_v3p0/{area}/{index_translation[index]}_'
                 f'{area}_sii-v3p0_daily-climatology-{clim}.nc',
                 cache=False,
             ).load()
@@ -138,7 +137,7 @@ class VisDataDaily:
 
         for dec in decades:
             ds = xr.open_dataset(
-                f'{dir}/clim/{area}/{index_translation[index]}_'
+                f'{dir}/tc_v3p0/{area}/{index_translation[index]}_'
                 f'{area}_sii-v3p0_daily-climatology-{dec}.nc',
                 cache=False,
             ).load()
@@ -442,8 +441,7 @@ class VisDataMonthly:
             )
 
     def _download_data(self, index: str, area: str):
-        dir = ('https://thredds.met.no/thredds/dodsC/metusers/signeaa/'
-               'test-data-sii-v3p0/sii_v3p0')
+        dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/sii_v3p0'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
         path = (f'{dir}/{area}/{index_translation[index]}_{area}_'

@@ -63,6 +63,14 @@ def visualisation():
     )
     pn.state.location.sync(reference_period_selector, {'value': 'ref'})
 
+    forecast_selector = pn.widgets.Select(
+        name='Forecast:',
+        options=['TOPAZ5', 'ECMWF', 'DWD'],
+        value='TOPAZ5',
+        sizing_mode='stretch_width',
+    )
+    pn.state.location.sync(forecast_selector, {'value': 'forecast'})
+
     plot_shortcuts = pn.widgets.MenuButton(
         name='Plot shortcuts',
         items=[
@@ -135,6 +143,7 @@ def visualisation():
         index_selector.value,
         area_selector.value,
         reference_period_selector.value,
+        forecast_selector.value,
         cmap_selector.value,
     )
 
@@ -305,17 +314,23 @@ def visualisation():
         visible=False,
     )
 
-    ensemble_members = []
-    for index, cds in data.cds_forecasts.items():
-        forecast = plot.line(
-            x='doy',
-            y='value',
-            source=cds,
-            line_width=2,
-            line_color='black',
-        )
+    forecast_span = plot.varea(
+        x='doy',
+        y1='min',
+        y2='max',
+        source=data.cds_forecast_span,
+        fill_alpha=0.3,
+        fill_color='red',
+    )
 
-        ensemble_members.append(forecast)
+    forecast_median = plot.line(
+        x='doy',
+        y='median',
+        source=data.cds_forecast_span,
+        line_width=2,
+        line_alpha=0.5,
+        line_color='red',
+    )
 
     last_year_outline = plot.line(
         x='doy',
@@ -342,7 +357,7 @@ def visualisation():
     legend_list.extend(decades)
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
-    legend_list.append(('Forecast', ensemble_members))
+    legend_list.append(('Forecast', [forecast_span, forecast_median]))
 
     n = 30
     legend_split = [
@@ -364,7 +379,7 @@ def visualisation():
         all_yearly_glyphs,
         [yearly_min],
         [yearly_max],
-        ensemble_members,
+        [forecast_span],
     )
     plot.add_tools(tooltips.yearly)
     plot.add_tools(tooltips.min)
@@ -400,6 +415,7 @@ def visualisation():
                     index_selector.value,
                     area_selector.value,
                     reference_period_selector.value,
+                    forecast_selector.value,
                     cmap_selector.value,
                 )
             except OSError:
@@ -450,8 +466,8 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = False
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = False
+                for forecast in [forecast_span, forecast_median]:
+                    forecast.visible = False
 
                 last_year_outline.visible = False
                 last_year_inner.visible = False
@@ -473,8 +489,8 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = True
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
+                for forecast in [forecast_span, forecast_median]:
+                    forecast.visible = True
 
                 last_year_outline.visible = True
                 last_year_inner.visible = True
@@ -501,8 +517,8 @@ def visualisation():
                 for year in yearly[-5:]:
                     year[1][0].visible = True
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
+                for forecast in [forecast_span, forecast_median]:
+                    forecast.visible = True
 
                 last_year_outline.visible = True
                 last_year_inner.visible = True
@@ -521,8 +537,8 @@ def visualisation():
                 yearly_min.visible = False
                 yearly_max.visible = False
 
-                for ens_mem in ensemble_members:
-                    ens_mem.visible = True
+                for forecast in [forecast_span, forecast_median]:
+                    forecast.visible = True
 
                 last_year_outline.visible = True
                 last_year_inner.visible = True
@@ -585,6 +601,7 @@ def visualisation():
         index_selector,
         area_selector,
         reference_period_selector,
+        forecast_selector,
         plot_shortcuts,
         zoom_shortcuts,
         cmap_selector,
@@ -609,6 +626,7 @@ def visualisation():
     index_selector.param.watch(update_data, 'value')
     area_selector.param.watch(update_data, 'value')
     reference_period_selector.param.watch(update_data, 'value')
+    forecast_selector.param.watch(update_data, 'value')
     plot_shortcuts.param.watch(
         shortcuts_callback, 'clicked', onlychanged=False
     )

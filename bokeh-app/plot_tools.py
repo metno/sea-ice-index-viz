@@ -271,15 +271,25 @@ class Tooltips:
         tooltips = f"""
                 <div>
                     <div>
-                        <span style="font-size: 14px; font-weight: bold;">TOPAZ5 (member @member)</span>
+                        <span style="font-size: 14px; font-weight: bold;">@model</span>
                     </div>
                     <div>
                         <span style="font-size: 12px; font-weight: bold">Date:</span>
                         <span style="font-size: 12px;">@date</span>
                     </div>
                     <div>
-                        <span style="font-size: 12px; font-weight: bold">Index:</span>
-                        <span style="font-size: 12px;">@value{{{fmt}}}</span>
+                        <span style="font-size: 12px; font-weight: bold">Max:</span>
+                        <span style="font-size: 12px;">@max{{{fmt}}}</span>
+                        <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Median:</span>
+                        <span style="font-size: 12px;">@median{{{fmt}}}</span>
+                        <span style="font-size: 12px;">mill. km<sup>2</sup></span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; font-weight: bold">Min:</span>
+                        <span style="font-size: 12px;">@min{{{fmt}}}</span>
                         <span style="font-size: 12px;">mill. km<sup>2</sup></span>
                     </div>
                 </div>

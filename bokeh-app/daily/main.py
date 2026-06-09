@@ -314,19 +314,33 @@ def visualisation():
         visible=False,
     )
 
-    forecast_span = plot.varea(
+    # We need to have two forecast varea glyphs in order to correctly display
+    # a forecast that spans two years. Simply inserting nan values into a
+    # varea glyph is not enough to prevent it from wrapping around from one
+    # year into the next.
+
+    forecast_span1 = plot.varea(
         x='doy',
         y1='min',
         y2='max',
-        source=data.cds_forecast_span,
+        source=data.cds_forecast_span1,
+        fill_alpha=0.3,
+        fill_color='red',
+    )
+
+    forecast_span2 = plot.varea(
+        x='doy',
+        y1='min',
+        y2='max',
+        source=data.cds_forecast_span2,
         fill_alpha=0.3,
         fill_color='red',
     )
 
     forecast_median = plot.line(
         x='doy',
-        y='median',
-        source=data.cds_forecast_span,
+        y='value',
+        source=data.cds_forecast_median,
         line_width=2,
         line_alpha=0.5,
         line_color='red',
@@ -357,7 +371,7 @@ def visualisation():
     legend_list.extend(decades)
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
-    legend_list.append(('Forecast', [forecast_span, forecast_median]))
+    legend_list.append(('Forecast', [forecast_span1, forecast_span2, forecast_median]))
 
     n = 30
     legend_split = [
@@ -379,7 +393,7 @@ def visualisation():
         all_yearly_glyphs,
         [yearly_min],
         [yearly_max],
-        [forecast_span],
+        [forecast_span1, forecast_span2],
     )
     plot.add_tools(tooltips.yearly)
     plot.add_tools(tooltips.min)
@@ -466,7 +480,7 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = False
 
-                for forecast in [forecast_span, forecast_median]:
+                for forecast in [forecast_span1, forecast_span2, forecast_median]:
                     forecast.visible = False
 
                 last_year_outline.visible = False
@@ -489,7 +503,7 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = True
 
-                for forecast in [forecast_span, forecast_median]:
+                for forecast in [forecast_span1, forecast_span2, forecast_median]:
                     forecast.visible = True
 
                 last_year_outline.visible = True
@@ -517,7 +531,7 @@ def visualisation():
                 for year in yearly[-5:]:
                     year[1][0].visible = True
 
-                for forecast in [forecast_span, forecast_median]:
+                for forecast in [forecast_span1, forecast_span2, forecast_median]:
                     forecast.visible = True
 
                 last_year_outline.visible = True
@@ -537,7 +551,7 @@ def visualisation():
                 yearly_min.visible = False
                 yearly_max.visible = False
 
-                for forecast in [forecast_span, forecast_median]:
+                for forecast in [forecast_span1, forecast_span2, forecast_median]:
                     forecast.visible = True
 
                 last_year_outline.visible = True

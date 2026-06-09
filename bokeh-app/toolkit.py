@@ -60,7 +60,11 @@ class VisDataDaily:
 
         da = ds_forecast[index].quantile([0, 0.5, 1], dim='member')
 
-        self.cds_forecast_span = ColumnDataSource(self._forecast_varea(da, forecast))
+        data_varea1, data_varea2 = self._forecast_varea(da, forecast)
+        self.cds_forecast_span1 = ColumnDataSource(data_varea1)
+        self.cds_forecast_span2 = ColumnDataSource(data_varea2)
+
+        self.cds_forecast_median = ColumnDataSource(self._forecast_median(da))
 
     def update_data(
         self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, forecast: str, cmap: str
@@ -104,7 +108,11 @@ class VisDataDaily:
 
         da = ds_forecast[index].quantile([0, 0.5, 1], dim='member')
 
-        self.cds_forecast_span.data.update(self._forecast_varea(da, forecast))
+        varea_data1, varea_data2 = self._forecast_varea(da, forecast)
+        self.cds_forecast_span1.data.update(varea_data1)
+        self.cds_forecast_span2.data.update(varea_data2)
+
+        self.cds_forecast_median.data.update(self._forecast_median(da))
 
     def update_colour(self, cmap: str) -> None:
         cols = [
@@ -341,7 +349,6 @@ class VisDataDaily:
     def _forecast_median(self, da: xr.DataArray):
         doy = da.time.dt.dayofyear.values
         values = da.sel(quantile=0.5).values
-        dates = da.time.dt.strftime('%Y-%m-%d').values
 
         # Check whether dayofyear array contains both 1 and 366 which
         # indicates that it runs into the next year. We then need to insert
@@ -351,40 +358,57 @@ class VisDataDaily:
             year_start_index = np.where(doy == 1)[0]
             doy = np.insert(doy, year_start_index, 367)
             values = np.insert(values, year_start_index, np.nan)
-            dates = np.insert(dates, year_start_index, 'FAKE')
 
         return {
             'doy': doy,
             'value': values,
-            'date': dates,
         }
 
     def _forecast_varea(self, da: xr.DataArray, model: str):
-        doy = da.time.dt.dayofyear.values
+        doy = da.time.dt.dayofyear.values.tolist()
 
         min = da.sel(quantile=0).values
         median = da.sel(quantile=0.5).values
         max = da.sel(quantile=1).values
         dates = da.time.dt.strftime('%Y-%m-%d').values
 
-        # Check whether dayofyear array contains both 1 and 366 which
-        # indicates that it runs into the next year. We then need to insert
-        # a nan-value in the values array, and placeholder fake values in
-        # the other arrays.
-        if sum(np.isin(doy, [366, 1])) == 2:
-            year_start_index = np.where(doy == 1)[0]
-            doy = np.insert(doy, year_start_index, 367)
-            min = np.insert(min, year_start_index, np.nan)
-            median = np.insert(median, year_start_index, np.nan)
-            max = np.insert(max, year_start_index, np.nan)
-            dates = np.insert(dates, year_start_index, 'FAKE')
+        if (366 in doy) and (1 in doy):
+            data1 = {
+                    'model': np.full(len(doy[: doy.index(1)]), model),
+                    'doy': doy[: doy.index(1)],
+                    'min': min[: doy.index(1)],
+                    'median': median[: doy.index(1)],
+                    'max': max[: doy.index(1)],
+                    'date': dates[: doy.index(1)]
+                }
+            data2 = {
+                    'model': np.full(len(doy[doy.index(1):]), model),
+                    'doy': doy[doy.index(1):],
+                    'min': min[doy.index(1):],
+                    'median': median[doy.index(1):],
+                    'max': max[doy.index(1):],
+                    'date': dates[doy.index(1):]
+                }
+        else:
+            data1 = {
+                    'model': np.full(len(doy), model),
+                    'doy': doy,
+                    'min': min,
+                    'median': median,
+                    'max': max,
+                    'date': dates
+                }
+            data2 ={
+                    'model': [np.nan],
+                    'doy': [np.nan],
+                    'min': [np.nan],
+                    'median': [np.nan],
+                    'max': [np.nan],
+                    'date': [np.nan]
+                }
 
-        return {'model': np.full(doy.shape, model),
-                'doy': doy,
-                'min': min,
-                'median': median,
-                'max': max,
-                'date': dates}
+
+        return data1, data2
 
     def _get_colours(self, years: NDArray) -> dict[str, NDArray[str]]:
         colours = {}

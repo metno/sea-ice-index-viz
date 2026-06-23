@@ -1,22 +1,22 @@
-from bokeh.plotting import figure
-from bokeh.core.properties import value
-from bokeh.events import DocumentReady
-from bokeh.models import Legend, Label, Range1d, AdaptiveTicker, Paragraph
-from bokeh.io import curdoc
-import panel as pn
 import os
 
-from toolkit import VisDataDaily
+import panel as pn
+from bokeh.core.properties import value
+from bokeh.events import DocumentReady
+from bokeh.io import curdoc
+from bokeh.models import AdaptiveTicker, Label, Legend, Paragraph, Range1d
+from bokeh.plotting import figure
 from plot_tools import (
     AreaNames,
-    daily_attrs,
     Tooltips,
-    year_zoom,
-    now_zoom,
-    min_zoom,
+    daily_attrs,
     max_zoom,
+    min_zoom,
     missing_data_page,
+    now_zoom,
+    year_zoom,
 )
+from toolkit import VisDataDaily
 
 # Get the root directory of the app.
 app_root = os.getenv('APP_ROOT')
@@ -371,7 +371,9 @@ def visualisation():
     legend_list.extend(decades)
     legend_list.extend(yearly)
     legend_list.append((years[-1], [last_year_outline, last_year_inner]))
-    legend_list.append(('Forecast', [forecast_span1, forecast_span2, forecast_median]))
+    legend_list.append(
+        ('Forecast', [forecast_span1, forecast_span2, forecast_median])
+    )
 
     n = 30
     legend_split = [
@@ -480,7 +482,11 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = False
 
-                for forecast in [forecast_span1, forecast_span2, forecast_median]:
+                for forecast in [
+                    forecast_span1,
+                    forecast_span2,
+                    forecast_median,
+                ]:
                     forecast.visible = False
 
                 last_year_outline.visible = False
@@ -503,7 +509,11 @@ def visualisation():
                 for year in yearly:
                     year[1][0].visible = True
 
-                for forecast in [forecast_span1, forecast_span2, forecast_median]:
+                for forecast in [
+                    forecast_span1,
+                    forecast_span2,
+                    forecast_median,
+                ]:
                     forecast.visible = True
 
                 last_year_outline.visible = True
@@ -531,7 +541,11 @@ def visualisation():
                 for year in yearly[-5:]:
                     year[1][0].visible = True
 
-                for forecast in [forecast_span1, forecast_span2, forecast_median]:
+                for forecast in [
+                    forecast_span1,
+                    forecast_span2,
+                    forecast_median,
+                ]:
                     forecast.visible = True
 
                 last_year_outline.visible = True
@@ -551,7 +565,11 @@ def visualisation():
                 yearly_min.visible = False
                 yearly_max.visible = False
 
-                for forecast in [forecast_span1, forecast_span2, forecast_median]:
+                for forecast in [
+                    forecast_span1,
+                    forecast_span2,
+                    forecast_median,
+                ]:
                     forecast.visible = True
 
                 last_year_outline.visible = True

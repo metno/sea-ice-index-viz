@@ -1,4 +1,4 @@
-from bokeh.models import HoverTool, CustomJSHover
+from bokeh.models import CustomJSHover, HoverTool
 from bokeh.plotting import figure
 from xarray import DataArray
 

@@ -1,14 +1,14 @@
-from bokeh.plotting import figure
-from bokeh.models import Legend, HoverTool, CustomJSHover, Label, Paragraph
+import calendar
+import os
+from datetime import datetime
+
+import panel as pn
 from bokeh.events import DocumentReady
 from bokeh.io import curdoc
-import panel as pn
-import calendar
-from datetime import datetime
-import os
-
+from bokeh.models import CustomJSHover, HoverTool, Label, Legend, Paragraph
+from bokeh.plotting import figure
+from plot_tools import AreaNames, missing_data_page, monthly_attrs
 from toolkit import VisDataMonthly
-from plot_tools import AreaNames, monthly_attrs, missing_data_page
 
 # Get the root directory of the app.
 app_root = os.getenv('APP_ROOT')

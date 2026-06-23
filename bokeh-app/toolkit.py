@@ -1,16 +1,24 @@
 import calendar
-from bokeh.models import ColumnDataSource
-import xarray as xr
-import numpy as np
-import matplotlib
 import itertools
+
 import cmcrameri.cm as cmc
+import matplotlib
+import numpy as np
+import xarray as xr
+from bokeh.models import ColumnDataSource
 from numpy.typing import NDArray
 
 
 class VisDataDaily:
     def __init__(
-        self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, forecast: str, cmap: str
+        self,
+        anomaly: str,
+        rolling: str,
+        index: str,
+        area: str,
+        ref_period: str,
+        forecast: str,
+        cmap: str,
     ) -> None:
         self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
             anomaly, index, area, ref_period, forecast
@@ -67,7 +75,14 @@ class VisDataDaily:
         self.cds_forecast_median = ColumnDataSource(self._forecast_median(da))
 
     def update_data(
-        self, anomaly: str, rolling: str, index: str, area: str, ref_period: str, forecast: str, cmap: str
+        self,
+        anomaly: str,
+        rolling: str,
+        index: str,
+        area: str,
+        ref_period: str,
+        forecast: str,
+        cmap: str,
     ) -> None:
         self.ds_daily, ds_clim, ds_decades, ds_forecast = self._download_data(
             anomaly, index, area, ref_period, forecast
@@ -128,13 +143,20 @@ class VisDataDaily:
         self.cds_yearly_max.data.update(yearly_max)
 
     def _download_data(
-        self, anomaly: str, index: str, area: str, ref_period: str, forecast: str
+        self,
+        anomaly: str,
+        index: str,
+        area: str,
+        ref_period: str,
+        forecast: str,
     ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset], xr.Dataset]:
         dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = (f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_'
-                f'sii-v3p0_daily.nc')
+        path = (
+            f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_'
+            f'sii-v3p0_daily.nc'
+        )
         ds_daily = xr.open_dataset(path, cache=False).load()
 
         # Change to get test files working: use hardcoded climatology paths.
@@ -162,14 +184,20 @@ class VisDataDaily:
         ds_clim = ds_clims[ref_period]
 
         if forecast == 'TOPAZ5':
-            dir = ('https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-                   'SII_forecast/final_topaz5')
+            dir = (
+                'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
+                'SII_forecast/final_topaz5'
+            )
         elif forecast == 'ECMWF':
-            dir = ('https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-                   'SII_forecast/final_ecmwf')
+            dir = (
+                'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
+                'SII_forecast/final_ecmwf'
+            )
         else:
-            dir = ('https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-                   'SII_forecast/final_dwd')
+            dir = (
+                'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
+                'SII_forecast/final_dwd'
+            )
 
         try:
             ds_forecast = xr.open_dataset(
@@ -374,39 +402,38 @@ class VisDataDaily:
 
         if (366 in doy) and (1 in doy):
             data1 = {
-                    'model': np.full(len(doy[: doy.index(1)]), model),
-                    'doy': doy[: doy.index(1)],
-                    'min': min[: doy.index(1)],
-                    'median': median[: doy.index(1)],
-                    'max': max[: doy.index(1)],
-                    'date': dates[: doy.index(1)]
-                }
+                'model': np.full(len(doy[: doy.index(1)]), model),
+                'doy': doy[: doy.index(1)],
+                'min': min[: doy.index(1)],
+                'median': median[: doy.index(1)],
+                'max': max[: doy.index(1)],
+                'date': dates[: doy.index(1)],
+            }
             data2 = {
-                    'model': np.full(len(doy[doy.index(1):]), model),
-                    'doy': doy[doy.index(1):],
-                    'min': min[doy.index(1):],
-                    'median': median[doy.index(1):],
-                    'max': max[doy.index(1):],
-                    'date': dates[doy.index(1):]
-                }
+                'model': np.full(len(doy[doy.index(1) :]), model),
+                'doy': doy[doy.index(1) :],
+                'min': min[doy.index(1) :],
+                'median': median[doy.index(1) :],
+                'max': max[doy.index(1) :],
+                'date': dates[doy.index(1) :],
+            }
         else:
             data1 = {
-                    'model': np.full(len(doy), model),
-                    'doy': doy,
-                    'min': min,
-                    'median': median,
-                    'max': max,
-                    'date': dates
-                }
-            data2 ={
-                    'model': [np.nan],
-                    'doy': [np.nan],
-                    'min': [np.nan],
-                    'median': [np.nan],
-                    'max': [np.nan],
-                    'date': [np.nan]
-                }
-
+                'model': np.full(len(doy), model),
+                'doy': doy,
+                'min': min,
+                'median': median,
+                'max': max,
+                'date': dates,
+            }
+            data2 = {
+                'model': [np.nan],
+                'doy': [np.nan],
+                'min': [np.nan],
+                'median': [np.nan],
+                'max': [np.nan],
+                'date': [np.nan],
+            }
 
         return data1, data2
 
@@ -556,8 +583,10 @@ class VisDataMonthly:
         dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/sii_v3p0'
 
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = (f'{dir}/{area}/{index_translation[index]}_{area}_'
-                f'sii-v3p0_monthly.nc')
+        path = (
+            f'{dir}/{area}/{index_translation[index]}_{area}_'
+            f'sii-v3p0_monthly.nc'
+        )
         ds = xr.open_dataset(path, cache=False).load()
 
         return ds

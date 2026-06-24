@@ -65,7 +65,7 @@ def visualisation():
 
     forecast_selector = pn.widgets.Select(
         name='Forecast:',
-        options=['TOPAZ5', 'ECMWF', 'DWD'],
+        options=['CMCC', 'DWD', 'ECMWF', 'TOPAZ5'],
         value='TOPAZ5',
         sizing_mode='stretch_width',
     )

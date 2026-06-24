@@ -183,20 +183,30 @@ class VisDataDaily:
 
         ds_clim = ds_clims[ref_period]
 
-        if forecast == 'TOPAZ5':
+        if forecast == 'CMCC':
             dir = (
                 'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-                'SII_forecast/final_topaz5'
+                'SII_forecast/final_cmcc'
+            )
+        elif forecast == 'DWD':
+            dir = (
+                'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
+                'SII_forecast/final_dwd'
             )
         elif forecast == 'ECMWF':
             dir = (
                 'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
                 'SII_forecast/final_ecmwf'
             )
-        else:
+        elif forecast == 'TOPAZ5':
             dir = (
                 'https://thredds.met.no/thredds/dodsC/metusers/thomasl/'
-                'SII_forecast/final_dwd'
+                'SII_forecast/final_topaz5'
+            )
+        else:
+            raise ValueError(
+                f'Invalid forecast variable "{forecast}"! Only the following '
+                'forecasts are supported: CMCC, DWD, ECMWF, TOPAZ5.'
             )
 
         try:

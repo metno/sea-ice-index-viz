@@ -1,5 +1,5 @@
 panel == 1.5.5
-bokeh == 3.6.2
+bokeh == 3.8.2
 netcdf4 == 1.7.2
 xarray == 2025.1.0
 bottleneck == 1.4.2

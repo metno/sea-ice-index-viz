@@ -1,4 +1,6 @@
 import calendar
+import logging
+import os
 from bokeh.models import ColumnDataSource
 import xarray as xr
 import numpy as np
@@ -6,6 +8,71 @@ import matplotlib
 import itertools
 import cmcrameri.cm as cmc
 from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
+
+# Data source configuration.
+#   SII_DATA_SOURCE: 'auto' (default) tries the local file system roots in
+#       order and falls back to OPeNDAP; 'local' only uses the file system;
+#       'opendap' only uses THREDDS.
+#   SII_LOCAL_ROOTS: colon-separated list of metproduction roots, tried in
+#       order (storeA and storeB are mirrors).
+#   SII_OPENDAP_URL: base OPeNDAP URL.
+DATA_SOURCE = os.environ.get('SII_DATA_SOURCE', 'auto').lower()
+LOCAL_ROOTS = [
+    root for root in os.environ.get(
+        'SII_LOCAL_ROOTS',
+        '/lustre/storeA/metproduction:/lustre/storeB/metproduction',
+    ).split(':') if root
+]
+OPENDAP_URL = os.environ.get(
+    'SII_OPENDAP_URL', 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index'
+)
+
+# Sub-paths of each product, relative to a local root and to the OPeNDAP URL.
+PRODUCT_PATHS = {
+    'timeseries': {
+        'local': 'products/osisaf/buffer/ice/index/sii_v3p0/timeseries',
+        'opendap': 'sii_v3p0',
+    },
+    'climatology': {
+        'local': 'static_data/osisaf/index/sii_v3p0/clim_ssmis',
+        'opendap': 'tc_v3p0',
+    },
+}
+
+
+def open_index_file(product: str, area: str, filename: str) -> xr.Dataset:
+    """Load a sea ice index file into memory from the configured source."""
+    if DATA_SOURCE not in ('auto', 'local', 'opendap'):
+        raise ValueError(f'Unknown SII_DATA_SOURCE: {DATA_SOURCE!r}')
+
+    candidates = []
+    if DATA_SOURCE in ('auto', 'local'):
+        sub = PRODUCT_PATHS[product]['local']
+        candidates += [os.path.join(root, sub, area, filename) for root in LOCAL_ROOTS]
+    if DATA_SOURCE in ('auto', 'opendap'):
+        sub = PRODUCT_PATHS[product]['opendap']
+        candidates.append(f'{OPENDAP_URL}/{sub}/{area}/{filename}')
+
+    errors = []
+    for path in candidates:
+        is_remote = path.startswith(('http://', 'https://'))
+        if not is_remote and not os.path.isfile(path):
+            errors.append(f'{path}: not found')
+            continue
+        try:
+            with xr.open_dataset(path, engine='netcdf4', cache=False) as ds:
+                ds = ds.load()
+            logger.debug('Loaded %s', path)
+            return ds
+        except Exception as err:  # Try the next candidate.
+            logger.warning('Failed to open %s: %s', path, err)
+            errors.append(f'{path}: {err}')
+
+    raise FileNotFoundError(
+        f'Could not open {filename} from any source:\n' + '\n'.join(errors)
+    )
 
 
 class VisDataDaily:
@@ -114,33 +181,25 @@ class VisDataDaily:
     def _download_data(
         self, anomaly: str, index: str, area: str, ref_period: str
     ) -> tuple[xr.Dataset, xr.Dataset, dict[str, xr.Dataset]]:
-        dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index'
-
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = (f'{dir}/sii_v3p0/{area}/{index_translation[index]}_{area}_'
-                f'sii-v3p0_daily.nc')
-        ds_daily = xr.open_dataset(path, cache=False).load()
+        prefix = f'{index_translation[index]}_{area}_sii-v3p0'
+        ds_daily = open_index_file('timeseries', area, f'{prefix}_daily.nc')
 
-        # Change to get test files working: use hardcoded climatology paths.
         ds_clims = {}
         ds_decades = {}
         clim_periods = ['1981-2010', '1991-2020']
         decades = ['1980-1989', '1990-1999', '2000-2009', '2010-2019']
 
         for clim in clim_periods:
-            ds = xr.open_dataset(
-                f'{dir}/tc_v3p0/{area}/{index_translation[index]}_'
-                f'{area}_sii-v3p0_daily-climatology-{clim}.nc',
-                cache=False,
-            ).load()
+            ds = open_index_file(
+                'climatology', area, f'{prefix}_daily-climatology-{clim}.nc'
+            )
             ds_clims[ds.attrs['climatology_period']] = ds
 
         for dec in decades:
-            ds = xr.open_dataset(
-                f'{dir}/tc_v3p0/{area}/{index_translation[index]}_'
-                f'{area}_sii-v3p0_daily-climatology-{dec}.nc',
-                cache=False,
-            ).load()
+            ds = open_index_file(
+                'climatology', area, f'{prefix}_daily-climatology-{dec}.nc'
+            )
             ds_decades[ds.attrs['climatology_period']] = ds
 
         ds_clim = ds_clims[ref_period]
@@ -441,14 +500,10 @@ class VisDataMonthly:
             )
 
     def _download_data(self, index: str, area: str):
-        dir = 'https://thredds.met.no/thredds/dodsC/osisaf/met.no/ice/index/sii_v3p0'
-
         index_translation = {'sie': 'ice_extent', 'sia': 'ice_area'}
-        path = (f'{dir}/{area}/{index_translation[index]}_{area}_'
-                f'sii-v3p0_monthly.nc')
-        ds = xr.open_dataset(path, cache=False).load()
+        filename = f'{index_translation[index]}_{area}_sii-v3p0_monthly.nc'
 
-        return ds
+        return open_index_file('timeseries', area, filename)
 
     def _get_anomaly(self, da: xr.DataArray, ref_per: str) -> xr.DataArray:
         start = ref_per[:4]

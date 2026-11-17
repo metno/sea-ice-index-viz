@@ -11,8 +11,16 @@ services:
       PYTHONUNBUFFERED: 1
       PYTHONPATH: '$${PYTHONPATH}:/bokeh-app'
       APP_ROOT: '/bokeh-app'
+      # The NetCDF files live on a read-only file system: HDF5 file locking
+      # must be disabled or netCDF4/HDF5 fails to open them.
+      HDF5_USE_FILE_LOCKING: 'FALSE'
+      # auto = local file system first (storeA, then storeB), then OPeNDAP.
+      SII_DATA_SOURCE: 'auto'
+      SII_LOCAL_ROOTS: '/lustre/storeA/metproduction:/lustre/storeB/metproduction'
     ports:
       - '7000:7000'
     volumes:
       - ./bokeh-app:/bokeh-app
+      - /lustre/storeA/metproduction:/lustre/storeA/metproduction:ro
+      - /lustre/storeB/metproduction:/lustre/storeB/metproduction:ro
 
